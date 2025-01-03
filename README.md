@@ -73,3 +73,6 @@ SQL Injection Scout 是一个用于 Burp Suite 的扩展，专为帮助安全研
 ## 联系
 
 如有任何问题或建议，请通过 [JaveleyQAQ@outlook.com](mailto:your.email@example.com) 联系我。
+
+## Start Hitory
+![](https://star-history.com/#JaveleyQAQ/SQL-Injection-Scout&Timeline)
