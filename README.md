@@ -58,21 +58,8 @@ SQL Injection Scout 是一个用于 Burp Suite 的扩展，专为帮助安全研
 
 ---
 
-## 🔥 version
-### 1.0.1
-[CHANGELOG.md#1.0.1 2025年 1月15日](CHANGELOG.md)
+####  [🔥 Update History](CHANGELOG.md)
 
-### 1.0.0
-* 🔥 芜湖～ 1️⃣ giao我里giao giao！ 呀呼～
-![img.png](src/main/resources/img.png)
-
-## 贡献
-
-欢迎对 SQL Injection Scout 进行贡献！您可以通过以下方式参与：
-
-- 提交问题或功能请求。
-- 提交代码改进或新功能的 Pull Request。
-- 提供文档改进建议。
 
 ## 联系
 
