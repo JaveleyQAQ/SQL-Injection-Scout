@@ -49,7 +49,6 @@ package utils
 //
 //    private fun calculatePatternSimilarity(pattern1: String, pattern2: String): Double {
 //        // 实现计算内容模式相似度的逻辑
-//        // 这里可以使用其他方法来计算内容模式相似度
 //        return 0.0
 //    }
 //

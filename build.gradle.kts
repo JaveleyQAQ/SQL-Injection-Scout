@@ -45,7 +45,10 @@ dependencies {
     implementation ("io.github.java-diff-utils:java-diff-utils:4.12")
     implementation ("com.fifesoft:rsyntaxtextarea:3.5.3")
     implementation("com.github.milchreis:uibooster:1.21.1")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
+
+
 //    implementation("com.github.Google.Diff-Match-Patch:diff-match-patch:20121119")
 //    implementation("com.github.ncoblentz:BurpMontoyaLibrary:0.1.12")
 

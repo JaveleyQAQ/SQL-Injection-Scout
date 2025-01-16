@@ -2,6 +2,7 @@ package ui.components
 
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.ui.editor.EditorOptions
+import config.DataPersistence
 import controller.HttpInterceptor
 import model.logentry.LogEntry
 import model.logentry.ModifiedLogEntry
@@ -258,9 +259,9 @@ class LogViewPanel(
             }
         })
 
-        // 添加标签页
-        dashBoardPanel.addTab("View Logs", logViewSplitPanel)
-        dashBoardPanel.addTab("Settings", SettingPanel())
+        // Use the icon directly
+        dashBoardPanel.addTab("SQL Scout", logViewSplitPanel)
+        dashBoardPanel.addTab("Settings", SettingPanel(DataPersistence(api)))
 
         return dashBoardPanel
     }

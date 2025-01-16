@@ -14,7 +14,6 @@ enum class Configs {
         val properties = Properties()
         val stream = javaClass.getResourceAsStream("/gradle.properties")
         properties.load(stream)
-
         // 读取属性
         version = properties.getProperty("projectVersion", "unknown")
         extensionName = properties.getProperty("extensionName", "unknown")
@@ -25,6 +24,7 @@ enum class Configs {
     var proxy: Boolean = true
     var repeater: Boolean = true
 
+    var nullCheck: Boolean = true
     var neverScanRegex: String = "(delete|del)"
 
     var filterStatusButton: Boolean = true
@@ -32,14 +32,15 @@ enum class Configs {
     var fixedIntervalTime : Long = 300
 
     var urlFileExtension:MutableList<String> = mutableListOf(
-        "js", "css", "jpg", "jpeg", "png", "gif", "ico", 
-        "woff", "woff2", "ttf", "eot", "mp4", "webm", "mp3", 
+        "js", "css", "jpg", "jpeg", "png", "gif", "ico",
+        "woff", "woff2", "ttf", "eot", "mp4", "webm", "mp3",
         "wav", "pdf", "doc", "docx", "xls", "xlsx"
     )
-    var payloads = mutableListOf(
+    var payloads = listOf<String>(
         "'\"%df",
         "'",
         "\"",
+        "')",
         "''",
         "'||'1",
         "\"||\"1",
@@ -149,13 +150,19 @@ enum class Configs {
         "Microsoft\\[ODBC Microsoft Access Driver\$"            // Microsoft Access ODBC驱动程序错误，转义方括号
     )
     var maxAllowedParameterCount: Int =30 // max allowed parameters
-    val allowedMimeTypeMimeType = mutableListOf("NONE", "HTML", "PLAIN_TEXT", "JSON", "XML", "YAML", "APPLICATION_UNKNOWN", "LEGACY_SER_AMF")
+    var allowedMimeTypeMimeType: MutableList<String> = mutableListOf("NONE", "HTML", "PLAIN_TEXT", "JSON", "XML", "YAML", "APPLICATION_UNKNOWN", "LEGACY_SER_AMF")
     var  uninterestingType = mutableListOf("js", "js.map", "css", "css.map", "swf", "zip", "gz", "7zip", "war", "jar", "doc", "docx", "xls", "xlsx", "pdf", "exe", "dll", "png", "jpeg", "jpg", "bmp", "tif", "tiff", "gif", "webp", "svg", "ico", "m3u", "mp4", "m4a", "ogg", "aac", "flac", "mp3", "wav", "avi", "mov", "mpeg", "wmv", "webm", "woff", "woff2", "ttf")
-    var heuristicWords: MutableList<String> = mutableListOf(
-        "\"status\":200",
-        "\"status\":\"200\"",
-        "'status':200",
-        "'status':'200'",
-        "status=200"
+    var heuristicWordsError: MutableList<String> = mutableListOf(
+        "无法解析请求参数",
+        "无效的请求",
+        "\"code\":999",
+        "\"code\":400",
+        "系统异常，请稍后再试！",
+        "网页访问错误",
+
+        "33333"
     )
+
 }
+
+

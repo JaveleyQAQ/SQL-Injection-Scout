@@ -2,8 +2,10 @@ import burp.api.montoya.utilities.Utilities
 import com.github.difflib.DiffUtils
 import com.github.difflib.patch.Patch
 import config.Configs
+import org.yaml.snakeyaml.Yaml
 import java.awt.*
 import java.io.File
+import java.io.InputStream
 import java.nio.file.Files
 import javax.swing.*
 
@@ -142,14 +144,14 @@ fun diffTest(){
     println("+21".toIntOrNull())
 }
 
-fun main() {
+//fun main() {
 
-    println("+134".toIntOrNull())
+//    println("a=1"[2])
 
 //    diffTest()
 
 // 初始化一个包含两个 null 的可变列表
-    val a: MutableList<Color?> = mutableListOf(null, null)
+//    val a: MutableList<Color?> = mutableListOf(null, null)
 
 // 使用索引操作符来设置值
 //    a[0] = Color.RED
@@ -157,17 +159,6 @@ fun main() {
 //    println(a.get(0)!=null)
 //
 //    println(a.toString())
-
-    val str = "(/login|/index)" // 移除了不必要的转义
-    val neverScanRegex = Regex(str, RegexOption.IGNORE_CASE)
-
-// 使用 containsMatchIn 方法来检查是否包含匹配项
-    println(neverScanRegex.containsMatchIn("123index1"))  // 输出 true
-
-
-
-
-    println(Configs.INSTANCE.version)
 
 
 
@@ -180,12 +171,7 @@ fun main() {
 //        println("] to [ ${patch.deltas[0].toString().split("] to [")}")
 //        println( patch.deltas[0].toString().split("] to [")[1].trim().dropLast(2))
     //的到的是You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''='"="' at line
+//}
 
 
-
-
-
-
-
-}
 

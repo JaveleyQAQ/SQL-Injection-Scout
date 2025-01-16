@@ -33,14 +33,13 @@ package utils
 //    }
 //
 //    private fun hasContentAnomaly(response: String): Boolean {
-//        // 检查是否包含预��的内容模式
+//        // 检查是否包含预erroR的内容模式
 //        return !normalPatterns.all { (_, pattern) ->
 //            pattern.find(response) != null
 //        }
 //    }
 //}
-//
-////主要改进点：
+///**
 ////结构化分析：
 ////分析HTML/JSON结构
 ////比较DOM树或JSON对象结构
@@ -57,8 +56,5 @@ package utils
 ////考虑搜索词的影响
 ////分析结果相关性
 ////评估变化的合理性
-////这样的改进可以：
-////1. 减少因搜索结果自然变化导致的误报
-////更准确地识别真实的注入响应
-////提高检测的准确性和可靠性
-////您觉得这些建议如何？我们可以先实现其中某个部分进行测试/
+//...
+//**/

@@ -7,7 +7,7 @@ data class ModifiedLogDataModel(
     val originIndex: String,
     val parameter:String,
     val payload:String,
-    val diff: String,
+    var diff: String,
     val status: Short,
     var vulnerability: Boolean = false,
     val httpRequestResponse: HttpRequestResponse,

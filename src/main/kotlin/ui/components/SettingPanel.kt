@@ -1,19 +1,19 @@
 package ui.components
 
 
-import config.Configs
 import java.awt.*
 import javax.swing.*
 import javax.imageio.ImageIO
 import java.awt.Image
 import javax.swing.ImageIcon
+import config.DataPersistence
 
 /**
  * 设置面板类 - 提供插件的主要配置界面
  * 包含SQL注入测试的各项配置，如Payload、MIME类型、文件扩展名等
  */
-class SettingPanel : JPanel() {
-    private val configs = Configs.INSTANCE
+class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
+    private val configs = dataPersistence.config  // 使用 dataPersistence 中的 config
 
     private val COLOR_BURP_ORANGE = Color(0xE36B1E)  // Burp Suite特色橙色
     private val FONT_FAMILY = " "                 // 字体族
@@ -24,28 +24,40 @@ class SettingPanel : JPanel() {
     private val FONT_MODE = Font(FONT_FAMILY, Font.BOLD, FONT_SIZE)    // 模式字体
     private val FONT_OPTIONS = Font(FONT_FAMILY, Font.PLAIN, FONT_SIZE - 2)  // 选项字体
 
+    // 创建一个Map来存储标签和对应的提示文本
+    private val tooltips = mapOf(
+        "Null Check:" to "Enable this to check parameters null value different",
+        "Max Param Count:" to "Maximum number of parameters to scan in a single request",
+        "FixedInterval(ms):" to "Fixed interval between scan requests in milliseconds",
+        "Random Delay Scan:" to "Additional random delay added to fixed interval for each request",
+        "Never Scan URLs Matching Regex:" to "URLs matching these regular expressions will be skipped",
+        "HeuristicWords" to "Keywords used to identify potential Boring in responses",
+        "SQL Payloads:" to "SQL injection payloads to test against parameters",
+        "Never Scan Extensions:" to "File extensions that will be skipped during scanning",
+        "Scan MIME Types:" to "MIME types that will be included in scanning"
+    )
+
     /**
      * 初始化设置面板
-     * 设置基本布局和大小，添加各个子面板
      */
     init {
-        // 设置基本布局
-        layout = BorderLayout(10, 10)  // 设置10像素的间距
-        border = BorderFactory.createEmptyBorder(10, 10, 10, 10)  // 设置边距
+        // 基本布局设置保持不变
+        layout = BorderLayout(10, 10)
+        border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        preferredSize = Dimension(800, 600)
+        minimumSize = preferredSize
+        maximumSize = preferredSize
         
-        // 设置固定大小
-        preferredSize = Dimension(800, 600)  // 设置首选大小
-        minimumSize = preferredSize          // 设置最小大小
-        maximumSize = preferredSize          // 设置最大大小，防止调整
-        
-        // 创建主面板，使用网格包布局
+        // 创建主面板
         val mainPanel = JPanel(GridBagLayout())
         add(mainPanel, BorderLayout.CENTER)
 
-        // 添加各个部分
-        addTitlePanel(mainPanel)     // 添加标题面板
-        addParametersPanel(mainPanel) // 添加参数配置面板
-        addRightPanel(mainPanel)     // 添加右侧预览面板
+        // 先加载持久化数据，再初始化UI
+        dataPersistence.loadData()  // 添加这行来加载持久化数据
+
+        addTitlePanel(mainPanel)
+        addParametersPanel(mainPanel)
+        addRightPanel(mainPanel)
     }
 
     /**
@@ -118,6 +130,7 @@ class SettingPanel : JPanel() {
                 addActionListener {
                     setter(isSelected)
                     this.text = if (isSelected) "$text" else "$text😢"
+                    dataPersistence.updateConfig()
 //                    println("配置 $text 已更改为: $isSelected")
                 }
             }
@@ -162,6 +175,15 @@ class SettingPanel : JPanel() {
 
         // 添加基本设置部分
         addConfigSection(configPanel, " ", listOf(
+            "Null Check:" to JCheckBox().apply {
+                maximumSize = Dimension(100, 25)
+                preferredSize = Dimension(100, 25)
+                isSelected = configs.nullCheck
+                addActionListener {
+                    configs.nullCheck = isSelected
+                    dataPersistence.updateConfig()
+                }
+            },
             "Max Param Count:" to JTextField(configs.maxAllowedParameterCount.toString(), 8).apply {
                 maximumSize = Dimension(100, 25)
                 preferredSize = Dimension(100, 25)
@@ -171,7 +193,10 @@ class SettingPanel : JPanel() {
                     override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
                     
                     private fun updateConfig() {
-                        text.toIntOrNull()?.let { configs.maxAllowedParameterCount = it }
+                        text.toIntOrNull()?.let {
+                            configs.maxAllowedParameterCount = it
+                            dataPersistence.updateConfig()
+                        }
                     }
                 })
             },
@@ -184,11 +209,12 @@ class SettingPanel : JPanel() {
                     override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
 
                     private fun updateConfig() {
-                        text.toLongOrNull()?.let { configs.fixedIntervalTime = it }
+                        text.toLongOrNull()?.let { configs.fixedIntervalTime = it
+                            dataPersistence.updateConfig()}
                     }
                 })
             },
-            "Random Delay Scan(The scan will add random intervals to fixed intervals. ):" to JTextField(configs.randomCheckTimer.toString(), 8).apply {
+            "Random Delay Scan:" to JTextField(configs.randomCheckTimer.toString(), 8).apply {
                 maximumSize = Dimension(100, 25)
                 preferredSize = Dimension(100, 25)
                 document.addDocumentListener(object : javax.swing.event.DocumentListener {
@@ -197,7 +223,9 @@ class SettingPanel : JPanel() {
                     override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
 
                     private fun updateConfig() {
-                        text.toLongOrNull()?.let { configs.randomCheckTimer = it }
+                        text.toLongOrNull()?.let { configs.randomCheckTimer = it
+                            dataPersistence.updateConfig()
+                        }
                     }
                 })
             },
@@ -213,6 +241,7 @@ class SettingPanel : JPanel() {
                     private fun updateConfig() {
                         val newText = text.trim()
                         configs.neverScanRegex = (if (newText.isBlank()) "" else newText).toString()
+                        dataPersistence.updateConfig()
                     }
                 })
             },
@@ -223,7 +252,7 @@ class SettingPanel : JPanel() {
                 lineWrap = true
                 wrapStyleWord = true
                 font = FONT_OPTIONS
-                text = configs.heuristicWords.joinToString("\n")
+                text = configs.heuristicWordsError.joinToString("\n")
                 border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
 
                 // 添加文档监听器
@@ -233,10 +262,11 @@ class SettingPanel : JPanel() {
                     override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
 
                     private fun updateConfig() {
-                        configs.heuristicWords = text.split("\n")
+                        configs.heuristicWordsError = text.split("\n")
                             .map { it.trim() }
                             .filter { it.isNotEmpty() }
                             .toMutableList()
+                        dataPersistence.updateConfig()
                     }
                 })
             })
@@ -263,7 +293,7 @@ class SettingPanel : JPanel() {
                             .map { it.trim() }
                             .filter { it.isNotEmpty() }
                             .toMutableList()
-                        print(configs.payloads.joinToString("\n"))
+                        dataPersistence.updateConfig()
                     }
                 })
             }).apply {
@@ -289,6 +319,7 @@ class SettingPanel : JPanel() {
                             .map { it.trim() }
                             .filter { it.isNotEmpty() }
                             .toMutableList()
+                        dataPersistence.updateConfig()
                     }
                 })
             }).apply {
@@ -317,7 +348,9 @@ class SettingPanel : JPanel() {
                             text.split("\n")
                                 .map { it.trim() }
                                 .filter { it.isNotEmpty() }
+
                         )
+                        dataPersistence.updateConfig()
                     }
                 })
             }).apply {
@@ -389,6 +422,11 @@ class SettingPanel : JPanel() {
                     // 对于JScrollPane，将标签垂直对齐设置为顶部
                     if (component is JScrollPane) {
                         verticalAlignment = JLabel.TOP
+                    }
+                    
+                    // 添加工具提示
+                    tooltips[label]?.let { tooltip ->
+                        toolTipText = tooltip
                     }
                 }
                 
@@ -486,17 +524,17 @@ class SettingPanel : JPanel() {
 }
 
 /**
- * 主函数 - 用于测试设置面板
+ *
  */
-fun main() {
-    SwingUtilities.invokeLater {
-        val frame = JFrame("SQL Scout Settings")
-        frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
-        frame.setSize(800, 600)
-        frame.isResizable = false    // 禁止调整窗口大小
-        
-        val settingPanel = SettingPanel()
-        frame.contentPane.add(settingPanel)
-        frame.isVisible = true
-    }
-}
+//fun main() {
+//    SwingUtilities.invokeLater {
+//        val frame = JFrame("SQL Scout Settings")
+//        frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+//        frame.setSize(800, 600)
+//        frame.isResizable = false    // 禁止调整窗口大小
+//
+//        val settingPanel = SettingPanel(DataPersistence())
+//        frame.contentPane.add(settingPanel)
+//        frame.isVisible = true
+//    }
+//}

@@ -48,7 +48,7 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
         logs?.modifiedEntries?.forEachIndexed { index, entry ->
             val responseCode = entry.status.toInt()
             val diffCount = diffCountMap[entry.diff] ?: 0
-            if (entry.color[0] ==null){
+            if (entry.color[0] == null){
                 entry.color = colorManager.determineColor(entry.diff, entry.payload.length, responseCode, diffCount)
             }
 
@@ -135,7 +135,6 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
         val entries = logEntry.getEntry(md5)?.modifiedEntries?.toList()
         return entries?.getOrNull(index)
     }
-
     @Synchronized
     fun addModifiedEntry(md5: String, modifiedEntry: ModifiedLogDataModel, diffString: String?) {
         logEntry.getEntry(md5)?.modifiedEntries?.let { entries ->

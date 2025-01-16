@@ -7,11 +7,14 @@ import burp.api.montoya.http.handler.HttpResponseReceived
 import burp.api.montoya.http.message.HttpRequestResponse
 import burp.api.montoya.http.message.params.HttpParameter
 import burp.api.montoya.http.message.params.HttpParameterType
+import burp.api.montoya.http.message.params.ParsedHttpParameter
 import burp.api.montoya.http.message.requests.HttpRequest
 import burp.api.montoya.http.message.responses.HttpResponse
+import com.nickcoblentz.montoya.withUpdatedContentLength
 import config.Configs
 import model.logentry.LogEntry
 import model.logentry.ModifiedLogDataModel
+import java.lang.reflect.Parameter
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.util.regex.Pattern
@@ -59,7 +62,7 @@ class RequestResponseUtils {
         val originalRequest = httpResponseReceived.initiatingRequest()
         val httpRequestMethod = originalRequest.method().equals("OPTIONS")
 
-        if (!isAllowedRequestFileExtension(originalRequest) && !isAllowedRegexURLs(originalRequest.path()) ) {
+        if (!isAllowedRequestFileExtension(originalRequest) && !isAllowedRegexURLs(originalRequest.path())) {
             return false
         }
         if (!httpRequestMethod &&
@@ -73,9 +76,10 @@ class RequestResponseUtils {
 //            originalRequest.parameters().stream().forEach{ t -> println("${t.name()}  ${t.type()}")   }
             val onlyCookies = !originalRequest.hasParameters(HttpParameterType.URL) &&
                     !originalRequest.hasParameters(HttpParameterType.BODY) && !originalRequest.hasParameters(
-                HttpParameterType.JSON) && !originalRequest.hasParameters(HttpParameterType.XML_ATTRIBUTE)
+                HttpParameterType.JSON
+            ) && !originalRequest.hasParameters(HttpParameterType.XML_ATTRIBUTE)
                     && !originalRequest.hasParameters(HttpParameterType.XML)
-            &&!originalRequest.hasParameters(HttpParameterType.MULTIPART_ATTRIBUTE)
+                    && !originalRequest.hasParameters(HttpParameterType.MULTIPART_ATTRIBUTE)
             originalRequest.hasParameters(HttpParameterType.COOKIE)
 
             return hasAnyParams && !onlyCookies
@@ -88,10 +92,10 @@ class RequestResponseUtils {
     }
 
     private fun isAllowedResponseType(response: HttpResponse): Boolean {
-        return !configs.allowedMimeTypeMimeType.none { it==response.mimeType().toString()}
+        return !configs.allowedMimeTypeMimeType.none { it == response.mimeType().toString() }
     }
 
-    private fun isAllowedRequestFileExtension(request: HttpRequest): Boolean{
+    private fun isAllowedRequestFileExtension(request: HttpRequest): Boolean {
         return configs.uninterestingType.none { request.fileExtension().equals(it) }
     }
 
@@ -276,6 +280,144 @@ class RequestResponseUtils {
             is String -> value.equals("true", ignoreCase = true) || value.equals("false", ignoreCase = true)
             else -> false
         }
+    }
+
+    /**
+     *  对json内的value数据类型检查
+     */
+    fun jsonValueType(request: HttpRequest, param: ParsedHttpParameter): Any? {
+
+        val requestString = request.toString()
+        val startIndex = param.valueOffsets().startIndexInclusive()
+        val endIndex = param.valueOffsets().endIndexExclusive()
+
+        // 检查索引是否有效
+        if (startIndex < 0 || endIndex > requestString.length || startIndex >= endIndex) {
+            println("Invalid offsets for parameter ${param.name()}")
+            return null
+        }
+
+        val valueString = requestString.substring(startIndex, endIndex).trim()
+
+        val value: Any? = when {
+            valueString == "null" -> null
+            startIndex > 0 && endIndex < requestString.length &&
+                    requestString[startIndex - 1] == '"' &&
+                    requestString[endIndex] == '"' -> valueString // 检查是否被双引号包围
+            valueString.toIntOrNull() != null -> valueString.toInt()
+            else -> valueString
+        }
+
+        /** when (value) {
+        is Int -> println("Key: ${param.name()}, Value: $value, Type: Int")
+        is String -> println("Key: ${param.name()}, Value: $value, Type: String")
+        null -> println("Key: ${param.name()}, Value: $value, Type: Null")
+        else -> println("Key: ${param.name()}, Value: $value, Type: Unknown")
+        }**/
+        return when (value) {
+
+            is Int -> Int
+            is String -> String
+            else -> null
+        }
+
+    }
+
+    /**
+     * 在HttpRequest的JOSN数据中，将传入参数的值修改为null
+     * @return HttpRequest
+     */
+    fun replaceJsonParameterValueWithNull(request: HttpRequest, parameter: ParsedHttpParameter): HttpRequest {
+        var requestAsString = request.toString()
+        val originalStart = parameter.valueOffsets().startIndexInclusive()
+        val originalEnd = parameter.valueOffsets().endIndexExclusive()
+        val isQuoted = isQuotedValue(requestAsString, originalStart, originalEnd)
+        when (parameter.type()) {
+            HttpParameterType.JSON -> {
+                if (isQuoted) {
+                    // 对于带引号的值，从引号前开始替换，完全替换掉带引号的值
+                    requestAsString = requestAsString.substring(0, originalStart - 1) +
+                            "null" +
+                            requestAsString.substring(originalEnd + 1)
+                } else {
+                    // 对于不带引号的值，直接替换值部分
+                    requestAsString = requestAsString.substring(0, originalStart) +
+                            "null" +
+                            requestAsString.substring(originalEnd)
+                }
+            }
+
+            else -> {
+                // 非JSON参数直接替换值部分
+                requestAsString = requestAsString.substring(0, originalStart) +
+                        "null" +
+                        requestAsString.substring(originalEnd)
+            }
+        }
+        return HttpRequest.httpRequest(request.httpService(), requestAsString).withUpdatedContentLength(true)
+    }
+    fun replaceAllParameterValuesWithNull(request: HttpRequest, parameters: List<ParsedHttpParameter>): HttpRequest {
+        val parameterPositions = parameters.map { param ->
+            Triple(
+                param,
+                param.valueOffsets().startIndexInclusive(),
+                param.valueOffsets().endIndexExclusive()
+            )
+        }.sortedByDescending { it.second }
+
+        var requestAsString = request.toString()
+
+        for ((param, originalStart, originalEnd) in parameterPositions) {
+            // 检查参数名是否是分页或大小相关参数
+            if (isParameterNameSpecial(param.name())) {
+                continue
+            }
+
+            val isQuoted = isQuotedValue(requestAsString, originalStart, originalEnd)
+            when (param.type()) {
+                HttpParameterType.JSON -> {
+                    if (isQuoted) {
+                        // 对于带引号的值，从引号前开始替换，完全替换掉带引号的值
+                        requestAsString = requestAsString.substring(0, originalStart - 1) +
+                                "null" +
+                                requestAsString.substring(originalEnd + 1)
+                    } else {
+                        // 对于不带引号的值，直接替换值部分
+                        requestAsString = requestAsString.substring(0, originalStart) +
+                                "null" +
+                                requestAsString.substring(originalEnd)
+                    }
+                }
+
+                else -> {
+                    // 非JSON参数直接替换值部分
+                    requestAsString = requestAsString.substring(0, originalStart) +
+                            "null" +
+                            requestAsString.substring(originalEnd)
+                }
+            }
+        }
+
+        return HttpRequest.httpRequest(request.httpService(), requestAsString)
+            .withUpdatedContentLength(true)
+    }
+
+    // 检查值是否被引号包围
+    private fun isQuotedValue(requestString: String, start: Int, end: Int): Boolean {
+        val beforeChar = if (start > 0) requestString[start - 1] else ' '
+        val afterChar = if (end < requestString.length) requestString[end] else ' '
+        return beforeChar == '"' && afterChar == '"'
+    }
+
+    // 检查参数名称是否为特殊参数，如分页或大小相关参数
+    private fun isParameterNameSpecial(parameterName: String): Boolean {
+        val keywords = listOf(
+            "page",
+            "num",
+            "size",
+            "limit"
+        )
+        return keywords.any { keyword -> parameterName.contains(keyword, ignoreCase = true) }
     }
 
     fun calculateMD5(input: String): String {

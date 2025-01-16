@@ -8,6 +8,7 @@ class ColorManager {
         return when {
             diff == "Error" -> listOf(Color.RED, Color.BLACK)  // 添加对Error响应的处理
             diff == "same" -> listOf(Color.LIGHT_GRAY, Color.BLACK)
+            responseCode.toInt() == 0 -> listOf(Color.LIGHT_GRAY, Color.BLACK)
             responseCode in 400..404 -> listOf(Color.LIGHT_GRAY, Color.BLACK)
             responseCode in 501..505 -> listOf(Color.LIGHT_GRAY, Color.BLACK)
             diffCount >= 7 -> listOf(Color.LIGHT_GRAY, Color.BLACK)  // 频繁出现的差异

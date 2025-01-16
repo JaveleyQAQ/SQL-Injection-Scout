@@ -2,23 +2,17 @@ package controller
 
 import ExecutorManager
 import burp.api.montoya.MontoyaApi
-import burp.api.montoya.core.ToolSource
 import burp.api.montoya.core.ToolType
-import burp.api.montoya.http.RedirectionMode
-import burp.api.montoya.http.RequestOptions
 import burp.api.montoya.http.handler.*
 import burp.api.montoya.http.message.ContentType
 import burp.api.montoya.http.message.HttpRequestResponse
+import burp.api.montoya.http.message.params.HttpParameterType
 import burp.api.montoya.http.message.params.ParsedHttpParameter
 import burp.api.montoya.http.message.requests.HttpRequest
 import com.github.difflib.DiffUtils
 import com.nickcoblentz.montoya.PayloadUpdateMode
 import com.nickcoblentz.montoya.withUpdatedParsedParameterValue
 import config.Configs
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import model.logentry.LogEntry
 import model.logentry.ModifiedLogEntry
 import utils.RequestResponseUtils
@@ -27,10 +21,10 @@ import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.InputStreamReader
 import java.nio.charset.Charset
-import java.util.concurrent.CompletableFuture
 import javax.swing.SwingUtilities
 import com.nickcoblentz.montoya.sendRequestWithUpdatedContentLength
 import com.nickcoblentz.montoya.withUpdatedContentLength
+import config.DataPersistence
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
@@ -42,7 +36,7 @@ class HttpInterceptor(
 
 
     val executorService = ExecutorManager.get().executorService
-    private val configs = Configs.INSTANCE
+    private val configs = DataPersistence(api).config
     private val requestResponseUtils = RequestResponseUtils()
     private val uniqScannedParameters: MutableSet<String> = HashSet() // 记录已扫描的参数
     private val requestPayloadMap: MutableMap<HttpRequest?, Pair<String, String>> = HashMap() // 记录请求的参数和payload
@@ -86,6 +80,7 @@ class HttpInterceptor(
         val logIndex = logs.add(tmpParametersMD5, originalRequestResponse)
         if (logIndex >= 0) {
             val parameters = originalRequest.parameters()
+            println("configured parameters : ${configs.payloads}")
             val newRequests = generateRequestByPayload(originalRequest, parameters, configs.payloads)
             output.logToOutput(
                 "｜开始扫描: ${
@@ -93,15 +88,18 @@ class HttpInterceptor(
                 }｜ 总参数数量： ${parameters.size} | 预计请求数：${newRequests.size}"
             )
             modifiedLog.addExpectedEntriesForMD5(tmpParametersMD5, newRequests.size)
-            scheduleRequests(newRequests,tmpParametersMD5)
+            scheduleRequests(newRequests, tmpParametersMD5)
         }
     }
 
 
-    fun scheduleRequests(newRequests: List<HttpRequest> ,tmpParametersMD5: String) {
+    fun scheduleRequests(newRequests: List<HttpRequest>, tmpParametersMD5: String) {
         newRequests.forEachIndexed { index, newRequest ->
             // 使用固定的增量来确保每个请求之间有足够的间隔
-            val delay = (index * configs.fixedIntervalTime) + Random.nextLong(0, configs.randomCheckTimer) // 每个请求至少间隔1秒，并且有额外的随机抖动
+            val delay = (index * configs.fixedIntervalTime) + Random.nextLong(
+                0,
+                configs.randomCheckTimer
+            ) // 每个请求至少间隔1秒，并且有额外的随机抖动
             executorService.schedule({
                 try {
                     val response = api.http().sendRequestWithUpdatedContentLength(newRequest)
@@ -152,13 +150,22 @@ class HttpInterceptor(
                 readAllLinesFromByteArray(originalRequestResponse?.response()?.body()?.bytes, Charsets.UTF_8)
             val revisedBody = readAllLinesFromByteArray(response?.body()?.bytes, Charsets.UTF_8)
             val diffs = DiffUtils.diff(originalBody, revisedBody).deltas
-
-
+            // 取出第一个不等的地方，作为diffText
             diffText = when {
                 diffs.isEmpty() -> ""
                 diffs.size >= 1 -> diffs[0].target.lines.getOrElse(0) { "" } //不管几个地方不同，都只取第一个
                 else -> ""
             }
+
+            // 存在差异，但 diff 长度却相同  {"count": 1, "data":{}} diff {"count": 0, "data":{}}
+            if (modifiedEntry.diff == "same" && diffText != "") {
+                modifiedEntry.diff = "sameLen diff detail"
+                modifiedEntry.color = listOf(Color.YELLOW, null)
+                diffText = "The responses have the same length but different contents.  $diffText"
+            }
+
+
+            // 若存在 SQL 匹配项，则标记为红色并记录
             if (!checkSQL.isNullOrEmpty()) {
                 api.logging()
                     .logToOutput("[${request.url()}] parameter [$parameter] using  payload [$payload] match  response [$checkSQL] ✅")
@@ -170,63 +177,163 @@ class HttpInterceptor(
         }
     }
 
+    /**
+     * 生成恶意请求
+     */
     private fun generateRequestByPayload(
         request: HttpRequest,
         parameters: List<ParsedHttpParameter>,
-        payloads: MutableList<String>,
+        payloads: List  <String>,
     ): List<HttpRequest> {
-        val payloadRequestList = mutableListOf<HttpRequest>()
+        val requestListWithPayload = mutableListOf<HttpRequest>()
+        addEmptyJsonRequest(request, requestListWithPayload)
+        addAllParamsNullRequest(request, parameters, requestListWithPayload)
 
-        for (param in parameters) {
-            // 记录 path-paramName-ParamType格式避免重复扫描
-            val parameterKey = "${request.path()}||${param.name()}||${param.type().name}"
-            if (param.type().name.uppercase() !== "COOKIE" && !requestResponseUtils.parameterValueIsBoolean(param.value())) {
-                if (!uniqScannedParameters.contains(parameterKey)) {
-                    // 创建一个新的列表来存储当前参数的 payload
-                    val currentPayloads = mutableListOf<String>()
+        //参数处理
+        parameters.forEach { parameter ->
+//            !isParameterSkippable(parameter)
+            if (true) {
+                val parameterFlag = createParameterFlag(request, parameter)
+                if (!uniqScannedParameters.contains(parameterFlag)) {
+                    uniqScannedParameters.add(parameterFlag)
+                    println("1")
+                    var currentPayloads = listOf<String>()
+                    println(payloads)
+//                    currentPayloads = preparePayloads(parameter.value(), payloads)
+//                    println("2")
+//
+//                    println(currentPayloads[0])
+////                    println(currentPayloads.toString())
 
-                    when {
-                        requestResponseUtils.parameterValueIsInteger(param.value()) -> {
-                            // 对于整数类型的参数，除了原始的 payloads，还添加 -1
-                            currentPayloads.addAll(payloads)
-                            currentPayloads.add("-1")
-                        }
 
-                        else -> {
-                            // 对于非整数类型的参数，只使用原始的 payloads
-                            currentPayloads.addAll(payloads)
-                        }
+
+                    currentPayloads.toMutableList().forEach{
+                        println("2.1 $it")
+                    }
+//                    currentPayloads.forEach { payload ->
+//                        println("2.1")
+//                        val mode =PayloadUpdateMode.APPEND
+////                            if (payload == "null") PayloadUpdateMode.REPLACE else PayloadUpdateMode.APPEND
+//                        val newRequest = addPayloadToRequestParam(request, parameter, payload, mode)
+//                        println("3")
+//                        requestListWithPayload.add(newRequest)
+//                        requestPayloadMap[newRequest] = Pair(parameter.name(), payload)
+//                        println("4")
+//
+//                    }
+                    // 插入null到单个参数,如果就一个参数 单独设置会和addAllParamsNullRequest重复
+                    if (configs.nullCheck && parameters.size >= 2) {
+                        val req = requestResponseUtils.replaceJsonParameterValueWithNull(request, parameter)
+                        requestListWithPayload.add(req)
+                        requestPayloadMap[req] = Pair(parameter.name(), "null")
                     }
 
-                    for (payload in currentPayloads) {
-                        var requestWithPayload: HttpRequest? = null
-                        if (request.contentType() != ContentType.JSON) {
-                            requestWithPayload =
-                                request.withUpdatedParsedParameterValue(
-                                    param,
-                                    api.utilities().urlUtils().encode(payload),
-                                    PayloadUpdateMode.APPEND
-                                )
-
-                            requestWithPayload = requestWithPayload.withUpdatedContentLength(true)
-                            payloadRequestList.add(requestWithPayload)
-                        } else if (request.contentType() == ContentType.JSON) {
-                            requestWithPayload = request.withUpdatedParsedParameterValue(
-                                param,
-                                payload.replace("\"", "%22", true).replace("#", "%23", true),
-                                PayloadUpdateMode.APPEND
-                            )
-                            requestWithPayload = requestWithPayload.withUpdatedContentLength(true)
-                            payloadRequestList.add(requestWithPayload)
-                        }
-
-                        requestPayloadMap[requestWithPayload] = Pair(param.name(), payload)
-                    }
-                    uniqScannedParameters.add(parameterKey)
                 }
             }
         }
 
-        return payloadRequestList
+        return requestListWithPayload
+    }
+
+    /**
+     * 检测参数位置是否值得跳过
+     */
+    private fun isParameterSkippable(parameter: ParsedHttpParameter): Boolean {
+        println("${parameter.name()} isParameterSkippable: ${parameter.type().name.uppercase() == "COOKIE"}")
+        return parameter.type().name.uppercase() == "COOKIE"
+    }
+
+    /**
+     * 创建参数flag，用于扫描去重筛选
+     */
+    private fun createParameterFlag(request: HttpRequest, parameter: ParsedHttpParameter): String {
+        return "${request.path()}||${parameter.name()}||${parameter.type().name}"
+    }
+
+    /**
+     * 考虑是否需要 二次处理payload
+     */
+    private fun preparePayloads(parameterValue: String, originalPayloads: List<String>): List<String> {
+        // 备份原始 payloads 的副本，不然每次add都会修改原始payloads
+        val mutablePayloads = originalPayloads.toMutableList()
+        if (requestResponseUtils.parameterValueIsInteger(parameterValue)) {
+            mutablePayloads.add("-1")
+        }
+        return mutablePayloads
+    }
+
+    /**
+     * 将json请求设置为空json
+     */
+    private fun addEmptyJsonRequest(request: HttpRequest, requestListWithPayload: MutableList<HttpRequest>) {
+        if (configs.nullCheck && request.contentType() == ContentType.JSON) {
+            val emptyRequest = HttpRequest.httpRequest(
+                request.httpService(),
+                "${request.toString().substring(0, request.bodyOffset())}{}"
+            ).withUpdatedContentLength()
+            requestListWithPayload.add(emptyRequest)
+            requestPayloadMap[emptyRequest] = Pair("{}", "{}")
+        }
+    }
+
+    /**
+     * 将所有参数值设置为null
+     */
+    private fun addAllParamsNullRequest(
+        request: HttpRequest,
+        parameters: List<ParsedHttpParameter>,
+        requestListWithPayload: MutableList<HttpRequest>
+    ) {
+        // 所有参数值设置为 null
+        if (configs.nullCheck) {
+            val allValuesWithNull =
+                requestResponseUtils.replaceAllParameterValuesWithNull(request, parameters)
+                    .withUpdatedContentLength(true)
+            requestListWithPayload.add(allValuesWithNull)
+            requestPayloadMap[allValuesWithNull] = Pair("ALL param", "NULL")
+        }
+
+    }
+
+    /**
+     * 将payload插入参数
+     */
+    private fun addPayloadToRequestParam(
+        request: HttpRequest,
+        parameter: ParsedHttpParameter,
+        payload: String,
+        module: PayloadUpdateMode
+    ): HttpRequest {
+        return when (parameter.type()) {
+            HttpParameterType.JSON -> {
+                val valueType = requestResponseUtils.jsonValueType(request, parameter)
+                println("xx")
+                if (valueType != Int && !(payload.contains("'") || payload.contains("\""))) {
+                    println("xx2")
+                    return request // Skip this iteration if the condition is met
+                }
+                println("xx3")
+                return request.withUpdatedParsedParameterValue(
+                    parameter,
+                    payload.replace("\"", "%22", true).replace("#", "%23", true),
+                    module
+                ).withUpdatedContentLength(true)
+            }
+
+
+            else -> {
+
+                println("xx5")
+
+            return request.withUpdatedParsedParameterValue(
+                parameter,
+                api.utilities().urlUtils().encode(payload),
+                module
+            ).withUpdatedContentLength(true)
+        }
+
+        }
+
+
     }
 }
