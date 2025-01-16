@@ -24,6 +24,7 @@ class DataPersistence(val api: MontoyaApi) {
     }
 
     fun loadData() {
+        println("DataPersistence loadData ")
         // 加载基本配置
         config.startUP = persistenceData.getBoolean("startUP") ?: true
         config.isInScope = persistenceData.getBoolean("isInScope") ?: true
@@ -31,17 +32,38 @@ class DataPersistence(val api: MontoyaApi) {
         config.repeater = persistenceData.getBoolean("repeater") ?: true
         config.nullCheck = persistenceData.getBoolean("nullCheck") ?: true
 
-        // 加载其他数值类型配置
+//         加载其他数值类型配置
         config.maxAllowedParameterCount = persistenceData.getInteger("maxAllowedParameterCount") ?: 30
         config.randomCheckTimer = persistenceData.getLong("randomCheckTimer") ?: 5000
         config.fixedIntervalTime = persistenceData.getLong("fixedIntervalTime") ?: 300
         config.neverScanRegex = persistenceData.getString("neverScanRegex") ?: "(delete|del)"
 
         // 加载列表类型配置
-        config.payloads = persistenceData.getStringList("payloads") ?: Configs.INSTANCE.payloads
-        config.heuristicWordsError = persistenceData.getStringList("heuristicWordsError") ?: Configs.INSTANCE.heuristicWordsError
-        config.uninterestingType = persistenceData.getStringList("uninterestingType")?:Configs.INSTANCE.uninterestingType
-        config.allowedMimeTypeMimeType = persistenceData.getStringList("allowedMimeTypeMimeType")?:Configs.INSTANCE.allowedMimeTypeMimeType
+        persistenceData.getStringList("payloads")?.let {
+            config.payloads.clear()
+            for (i in it){
+                config.payloads.add(i)
+            }
+        }
+
+        persistenceData.getStringList("heuristicWordsError")?.let {
+            config.heuristicWordsError.clear()
+            for (i in it){
+                config.heuristicWordsError.add(i)
+            }
+        }
+        persistenceData.getStringList("uninterestingType")?.let {
+            config.uninterestingType.clear()
+            for (i in it){
+                config.uninterestingType.add(i)
+            }
+        }
+        persistenceData.getStringList("allowedMimeTypeMimeType")?.let {
+            config.allowedMimeTypeMimeType.clear()
+            for (i in it){
+                config.allowedMimeTypeMimeType.add(i)
+            }
+        }
     }
 
     private fun setData() {
@@ -52,66 +74,40 @@ class DataPersistence(val api: MontoyaApi) {
         persistenceData.setBoolean("repeater", config.repeater)
         persistenceData.setBoolean("nullCheck", config.nullCheck)
 
-        // 保存其他数值类型配置
+//        // 保存其他数值类型配置
         persistenceData.setInteger("maxAllowedParameterCount", config.maxAllowedParameterCount)
         persistenceData.setLong("randomCheckTimer", config.randomCheckTimer)
         persistenceData.setLong("fixedIntervalTime", config.fixedIntervalTime)
         persistenceData.setString("neverScanRegex", config.neverScanRegex)
 
-        // 保存 payloads
-        var payloadsList = PersistedList.persistedStringList()
+
+//         保存 payloads
+        val payloadsList = PersistedList<String>.persistedStringList()
         payloadsList.clear()
-        config.payloads.forEach { payload ->
-            payloadsList.add(payload)
-        }
-        println(payloadsList.toString())
+        payloadsList.addAll(config.payloads)
         persistenceData.setStringList("payloads", payloadsList)
 
-        // 保存 heuristicWordsError
-        var heuristicList = PersistedList.persistedStringList()
+
+
+//         保存 heuristicWordsError
+        val heuristicList = PersistedList<String>.persistedStringList()
         heuristicList.clear()
-        config.heuristicWordsError.forEach { word ->
-            heuristicList.add(word)
-        }
+        heuristicList.addAll(config.heuristicWordsError)
         persistenceData.setStringList("heuristicWordsError", heuristicList)
 
-        // 保存 uninterestingType
-        var uninterestingType = PersistedList.persistedStringList()
+////         保存 uninterestingType
+        val uninterestingType = PersistedList<String>.persistedStringList()
         uninterestingType.clear()
-        config.uninterestingType.forEach { type ->
-            uninterestingType.add(type)
-        }
+        uninterestingType.addAll(config.uninterestingType)
         persistenceData.setStringList("uninterestingType", uninterestingType)
 
-        // 保存 allowedMimeTypeMimeType
-        var mimeTypeList = PersistedList.persistedStringList()
+//         保存 allowedMimeTypeMimeType
+        val mimeTypeList = PersistedList<String>.persistedStringList()
         mimeTypeList.clear()
-        config.allowedMimeTypeMimeType.forEach { mimeType ->
-            mimeTypeList.add(mimeType)
-        }
+        mimeTypeList.addAll(config.allowedMimeTypeMimeType)
         persistenceData.setStringList("allowedMimeTypeMimeType", mimeTypeList)
 
 
-
-
-
-
-//        persistenceData.setStringList("payloads", payloadsList)
-//
-//        var uninterestingType = PersistedList<String>.persistedStringList()
-//        uninterestingType.clear()
-//        config.uninterestingType.forEach { uninterestingType.add(it) }
-//        persistenceData.setStringList("uninterestingType", uninterestingType)
-//
-//        var heuristicWordsError = PersistedList<String>.persistedStringList()
-//        heuristicWordsError.clear()
-//        config.heuristicWordsError.forEach { heuristicWordsError.add(it) }
-//        persistenceData.setStringList("heuristicWordsError", heuristicWordsError)
-//
-//        var allowedMimeTypeMimeType = PersistedList<String>.persistedStringList()
-//        allowedMimeTypeMimeType.clear()
-//        config.allowedMimeTypeMimeType.forEach { allowedMimeTypeMimeType.add(it) }
-//        persistenceData.setStringList("allowedMimeTypeMimeType", allowedMimeTypeMimeType)
     }
 
     /**

@@ -18,6 +18,7 @@ class LogViewPanel(
     private val logs: LogEntry,
     private val modifiedLog: ModifiedLogEntry,
     private val httpInterceptor: HttpInterceptor,
+    private val dataPersistence: DataPersistence
 ) {
     private val userInterface = api.userInterface()
     private var currentMD5: String? = null
@@ -261,7 +262,7 @@ class LogViewPanel(
 
         // Use the icon directly
         dashBoardPanel.addTab("SQL Scout", logViewSplitPanel)
-        dashBoardPanel.addTab("Settings", SettingPanel(DataPersistence(api)))
+        dashBoardPanel.addTab("Settings", SettingPanel(dataPersistence))
 
         return dashBoardPanel
     }

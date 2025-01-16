@@ -52,9 +52,6 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
         val mainPanel = JPanel(GridBagLayout())
         add(mainPanel, BorderLayout.CENTER)
 
-        // 先加载持久化数据，再初始化UI
-        dataPersistence.loadData()  // 添加这行来加载持久化数据
-
         addTitlePanel(mainPanel)
         addParametersPanel(mainPanel)
         addRightPanel(mainPanel)
@@ -191,7 +188,7 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
                     override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
                     override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
                     override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    
+
                     private fun updateConfig() {
                         text.toIntOrNull()?.let {
                             configs.maxAllowedParameterCount = it
@@ -246,33 +243,35 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
                 })
             },
 
-            "HeuristicWords" to JScrollPane(JTextArea().apply {
-                rows = 10
-                columns = 30
-                lineWrap = true
-                wrapStyleWord = true
-                font = FONT_OPTIONS
-                text = configs.heuristicWordsError.joinToString("\n")
-                border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
-
-                // 添加文档监听器
-                document.addDocumentListener(object : javax.swing.event.DocumentListener {
-                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-
-                    private fun updateConfig() {
-                        configs.heuristicWordsError = text.split("\n")
-                            .map { it.trim() }
-                            .filter { it.isNotEmpty() }
-                            .toMutableList()
-                        dataPersistence.updateConfig()
-                    }
-                })
-            })
-            ,
-
-
+//            "HeuristicWords" to JScrollPane(JTextArea().apply {
+//                rows = 10
+//                columns = 30
+//                lineWrap = true
+//                wrapStyleWord = true
+//                font = FONT_OPTIONS
+//                text = configs.heuristicWordsError.joinToString("\n")
+//                border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
+//
+//                // 添加文档监听器
+//                document.addDocumentListener(object : javax.swing.event.DocumentListener {
+//                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+//                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+//                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+//
+//                    private fun updateConfig() {
+//                        val text = text.trim()
+//                        if (text.isNotEmpty()) {
+//                            // 分割并过滤掉空白行
+//                            configs.heuristicWordsError.clear()
+//                            configs.heuristicWordsError.addAll(text.lines())
+//                            dataPersistence.updateConfig()
+//                        }
+//                    }
+//                })
+//            })
+//            ,
+//
+//
             "SQL Payloads:" to JScrollPane(JTextArea().apply {
                 rows = 10
                 columns = 30
@@ -281,19 +280,22 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
                 font = FONT_OPTIONS
                 text = configs.payloads.joinToString("\n")
                 border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
-
                 // 添加文档监听器
                 document.addDocumentListener(object : javax.swing.event.DocumentListener {
                     override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
                     override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
                     override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-
                     private fun updateConfig() {
-                        configs.payloads = text.split("\n")
-                            .map { it.trim() }
-                            .filter { it.isNotEmpty() }
-                            .toMutableList()
-                        dataPersistence.updateConfig()
+                        configs.payloads.clear()
+                        // 获取 JTextArea 的文本，并按行分割
+                        val text = text.trim()
+                        if (text.isNotEmpty()) {
+                            // 分割并过滤掉空白行
+                            val newPayloads = text.lines().filter { it.isNotBlank() }
+                            configs.payloads.clear()
+                            configs.payloads.addAll(newPayloads)
+                            dataPersistence.updateConfig()
+                        }
                     }
                 })
             }).apply {
@@ -315,10 +317,8 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
                     override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
                     override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
                     private fun updateConfig() {
-                        configs.uninterestingType = text.split("\n")
-                            .map { it.trim() }
-                            .filter { it.isNotEmpty() }
-                            .toMutableList()
+                        configs.uninterestingType.clear()
+                        configs.uninterestingType.addAll(text.lines())
                         dataPersistence.updateConfig()
                     }
                 })
@@ -335,21 +335,16 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
                 font = FONT_OPTIONS
                 text = configs.allowedMimeTypeMimeType.joinToString("\n")
                 border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
-                
+
                 // 添加文档监听器
                 document.addDocumentListener(object : javax.swing.event.DocumentListener {
                     override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
                     override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
                     override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    
+
                     private fun updateConfig() {
                         configs.allowedMimeTypeMimeType.clear()
-                        configs.allowedMimeTypeMimeType.addAll(
-                            text.split("\n")
-                                .map { it.trim() }
-                                .filter { it.isNotEmpty() }
-
-                        )
+                        configs.allowedMimeTypeMimeType.addAll(text.lines())
                         dataPersistence.updateConfig()
                     }
                 })

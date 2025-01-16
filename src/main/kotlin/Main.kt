@@ -175,3 +175,16 @@ fun diffTest(){
 
 
 
+class de{
+     val a = 1
+    init {
+        println("apple")
+    }
+}
+
+fun main() {
+    println(de().a)
+    println(de().a)
+    println(de().a)
+}
+

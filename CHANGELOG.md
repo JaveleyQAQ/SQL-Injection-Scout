@@ -1,4 +1,7 @@
 # 更新日志
+## 1.0.2 2025年 1月16日
+- 修复一直处于scanning扫描状态[#3 ](https://github.com/JaveleyQAQ/SQL-Injection-Scout/issues/5)
+
 ## 1.0.1 2025年 1月15日 
 * 配置持久化
 * 添加新的payload，顺便检测越权
@@ -19,4 +22,6 @@
     > 
     >   >   {"count": 1, "data":{ }}  
 
-  
+## 1.0.0 发布
+* 🔥 芜湖～ 1️⃣ giao我里giao giao！ 呀呼～
+  ![img.png](src/main/resources/img.png)

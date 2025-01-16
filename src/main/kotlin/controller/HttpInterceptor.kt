@@ -24,7 +24,6 @@ import java.nio.charset.Charset
 import javax.swing.SwingUtilities
 import com.nickcoblentz.montoya.sendRequestWithUpdatedContentLength
 import com.nickcoblentz.montoya.withUpdatedContentLength
-import config.DataPersistence
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
@@ -36,7 +35,7 @@ class HttpInterceptor(
 
 
     val executorService = ExecutorManager.get().executorService
-    private val configs = DataPersistence(api).config
+    private val configs = Configs.INSTANCE
     private val requestResponseUtils = RequestResponseUtils()
     private val uniqScannedParameters: MutableSet<String> = HashSet() // 记录已扫描的参数
     private val requestPayloadMap: MutableMap<HttpRequest?, Pair<String, String>> = HashMap() // 记录请求的参数和payload
@@ -80,12 +79,11 @@ class HttpInterceptor(
         val logIndex = logs.add(tmpParametersMD5, originalRequestResponse)
         if (logIndex >= 0) {
             val parameters = originalRequest.parameters()
-            println("configured parameters : ${configs.payloads}")
             val newRequests = generateRequestByPayload(originalRequest, parameters, configs.payloads)
             output.logToOutput(
                 "｜开始扫描: ${
                     originalRequest.url().split('?')[0]
-                }｜ 总参数数量： ${parameters.size} | 预计请求数：${newRequests.size}"
+                }｜ 总参数数量： ${parameters.count{it.type().name !="COOKIE"}} | 预计请求数：${newRequests.size}"
             )
             modifiedLog.addExpectedEntriesForMD5(tmpParametersMD5, newRequests.size)
             scheduleRequests(newRequests, tmpParametersMD5)
@@ -183,7 +181,7 @@ class HttpInterceptor(
     private fun generateRequestByPayload(
         request: HttpRequest,
         parameters: List<ParsedHttpParameter>,
-        payloads: List  <String>,
+        payloads: List<String>,
     ): List<HttpRequest> {
         val requestListWithPayload = mutableListOf<HttpRequest>()
         addEmptyJsonRequest(request, requestListWithPayload)
@@ -191,36 +189,20 @@ class HttpInterceptor(
 
         //参数处理
         parameters.forEach { parameter ->
-//            !isParameterSkippable(parameter)
-            if (true) {
+            if (!isParameterSkippable(parameter)) {
                 val parameterFlag = createParameterFlag(request, parameter)
                 if (!uniqScannedParameters.contains(parameterFlag)) {
                     uniqScannedParameters.add(parameterFlag)
-                    println("1")
                     var currentPayloads = listOf<String>()
-                    println(payloads)
-//                    currentPayloads = preparePayloads(parameter.value(), payloads)
-//                    println("2")
-//
-//                    println(currentPayloads[0])
-////                    println(currentPayloads.toString())
+                    currentPayloads = preparePayloads(parameter.value(), payloads)
+                    currentPayloads.forEach { payload ->
+                        val mode = PayloadUpdateMode.APPEND
+                        if (payload == "null") PayloadUpdateMode.REPLACE else PayloadUpdateMode.APPEND
+                        val newRequest = addPayloadToRequestParam(request, parameter, payload, mode)
+                        requestListWithPayload.add(newRequest)
+                        requestPayloadMap[newRequest] = Pair(parameter.name(), payload)
 
-
-
-                    currentPayloads.toMutableList().forEach{
-                        println("2.1 $it")
                     }
-//                    currentPayloads.forEach { payload ->
-//                        println("2.1")
-//                        val mode =PayloadUpdateMode.APPEND
-////                            if (payload == "null") PayloadUpdateMode.REPLACE else PayloadUpdateMode.APPEND
-//                        val newRequest = addPayloadToRequestParam(request, parameter, payload, mode)
-//                        println("3")
-//                        requestListWithPayload.add(newRequest)
-//                        requestPayloadMap[newRequest] = Pair(parameter.name(), payload)
-//                        println("4")
-//
-//                    }
                     // 插入null到单个参数,如果就一个参数 单独设置会和addAllParamsNullRequest重复
                     if (configs.nullCheck && parameters.size >= 2) {
                         val req = requestResponseUtils.replaceJsonParameterValueWithNull(request, parameter)
@@ -239,7 +221,6 @@ class HttpInterceptor(
      * 检测参数位置是否值得跳过
      */
     private fun isParameterSkippable(parameter: ParsedHttpParameter): Boolean {
-        println("${parameter.name()} isParameterSkippable: ${parameter.type().name.uppercase() == "COOKIE"}")
         return parameter.type().name.uppercase() == "COOKIE"
     }
 
@@ -307,30 +288,22 @@ class HttpInterceptor(
         return when (parameter.type()) {
             HttpParameterType.JSON -> {
                 val valueType = requestResponseUtils.jsonValueType(request, parameter)
-                println("xx")
                 if (valueType != Int && !(payload.contains("'") || payload.contains("\""))) {
-                    println("xx2")
-                    return request // Skip this iteration if the condition is met
+                    return request // Skip
                 }
-                println("xx3")
                 return request.withUpdatedParsedParameterValue(
                     parameter,
                     payload.replace("\"", "%22", true).replace("#", "%23", true),
                     module
                 ).withUpdatedContentLength(true)
             }
+            else ->
+                return request.withUpdatedParsedParameterValue(
+                    parameter,
+                    api.utilities().urlUtils().encode(payload),
+                    module
+                ).withUpdatedContentLength(true)
 
-
-            else -> {
-
-                println("xx5")
-
-            return request.withUpdatedParsedParameterValue(
-                parameter,
-                api.utilities().urlUtils().encode(payload),
-                module
-            ).withUpdatedContentLength(true)
-        }
 
         }
 

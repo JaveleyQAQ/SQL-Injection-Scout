@@ -8,35 +8,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="8b06b7e0-a10b-4d35-9714-4a7effa211e3" name="更改" comment="1.0.0">
-      <change afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/config/ConfigManager.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/config/DataPersistence.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/config/config.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/img.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/img_1.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/img_2.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/img_3.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/1.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/gradle.properties" beforeDir="false" afterPath="$PROJECT_DIR$/gradle.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/UpdateRequestDemo.kt" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/MyExtension.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/MyExtension.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/RsyntaxTextAreDemo.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/ui/windows/RsyntaxTextAreDemo.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/config/Configs.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/config/Configs.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/config/ExecutorManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/config/ExecutorManager.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/config/DataPersistence.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/config/DataPersistence.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/controller/HttpInterceptor.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/controller/HttpInterceptor.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/logentry/ColorManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/logentry/ColorManager.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/logentry/ModifiedLogDataModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/logentry/ModifiedLogDataModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/logentry/ModifiedLogEntry.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/logentry/ModifiedLogEntry.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/ui/components/LogViewPanel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/ui/components/LogViewPanel.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/ui/components/SettingPanel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/ui/components/SettingPanel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/utils/AnomalyDetector.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/utils/AnomalyDetector.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/utils/RequestResponseUtils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/utils/RequestResponseUtils.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/utils/ResponseAnalyzer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/utils/ResponseAnalyzer.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tree.txt" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -288,10 +271,10 @@
     <recent_temporary>
       <list>
         <item itemvalue="Gradle.KotlinBurpExtensionBase-master-cursors [shadowJar]" />
+        <item itemvalue="Kotlin.MainKt (1)" />
         <item itemvalue="Kotlin.ConfigManagerKt (2)" />
         <item itemvalue="Kotlin.ConfigManagerKt (1)" />
         <item itemvalue="Kotlin.ConfigManagerKt" />
-        <item itemvalue="Kotlin.MainKt (1)" />
       </list>
     </recent_temporary>
   </component>
@@ -375,7 +358,7 @@
       <workItem from="1736757325560" duration="3705000" />
       <workItem from="1736818341654" duration="3531000" />
       <workItem from="1736837934609" duration="598000" />
-      <workItem from="1736844653167" duration="20560000" />
+      <workItem from="1736844653167" duration="34709000" />
     </task>
     <task id="LOCAL-00001" summary="1.0.0">
       <option name="closed" value="true" />
@@ -431,7 +414,7 @@
         </breakpoint>
         <line-breakpoint enabled="true" type="kotlin-function">
           <url>file://$PROJECT_DIR$/src/main/kotlin/utils/RequestResponseUtils.kt</url>
-          <line>240</line>
+          <line>232</line>
           <properties class="utils.RequestResponseUtils" method="findResponseDifferences">
             <option name="EMULATED" value="true" />
             <option name="WATCH_EXIT" value="false" />
@@ -442,14 +425,6 @@
           <url>file://$PROJECT_DIR$/src/main/kotlin/ui/components/DiffViewEditPanel.kt</url>
           <line>62</line>
           <option name="timeStamp" value="11" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="kotlin-line">
-          <url>file://$PROJECT_DIR$/src/main/kotlin/ui/components/SettingPanel.kt</url>
-          <line>248</line>
-          <properties>
-            <option name="lambda-ordinal" value="-1" />
-          </properties>
-          <option name="timeStamp" value="13" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

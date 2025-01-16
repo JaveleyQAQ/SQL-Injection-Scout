@@ -24,7 +24,7 @@ class MyExtension : BurpExtension, ExtensionUnloadingHandler {
         this.api = api
         val configs = Configs.INSTANCE
         api.extension().setName("${configs.extensionName}\uD83D\uDE2D")
-        
+
         // 初始化顺序很重要
         dataPersistence = DataPersistence(api)  // 先初始化数据持久化
         logs = LogEntry(api)
@@ -32,7 +32,7 @@ class MyExtension : BurpExtension, ExtensionUnloadingHandler {
         httpInterceptor = HttpInterceptor(logs, api, modifiedLog)
 
         // 注册UI组件
-        api.userInterface().registerSuiteTab("SQL Scout \uD83D\uDE2D", LogViewPanel(api, logs, modifiedLog, httpInterceptor).buildUI())
+        api.userInterface().registerSuiteTab("SQL Scout \uD83D\uDE2D", LogViewPanel(api, logs, modifiedLog, httpInterceptor,dataPersistence).buildUI())
 
         // 注册HTTP处理器和UI
         api.http().registerHttpHandler(httpInterceptor)

@@ -133,15 +133,7 @@ class RequestResponseUtils {
     }
 
     private fun isAllowedParamsCounts(request: HttpRequest): Boolean {
-
-        var count = 0
-        request.parameters().forEach { parameter ->
-            if (parameter.type() != HttpParameterType.COOKIE) {
-                count++
-            }
-        }
-//        println("参数数量: ${count}")
-        return count <= configs.maxAllowedParameterCount
+        return  request.parameters().count{it.type() != HttpParameterType.COOKIE} <= configs.maxAllowedParameterCount
     }
 
     fun markerResponseDifferent(
