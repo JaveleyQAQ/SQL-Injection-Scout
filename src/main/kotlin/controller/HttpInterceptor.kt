@@ -9,6 +9,8 @@ import burp.api.montoya.http.message.HttpRequestResponse
 import burp.api.montoya.http.message.params.HttpParameterType
 import burp.api.montoya.http.message.params.ParsedHttpParameter
 import burp.api.montoya.http.message.requests.HttpRequest
+import burp.api.montoya.scanner.AuditConfiguration
+import burp.api.montoya.scanner.BuiltInAuditConfiguration
 import com.github.difflib.DiffUtils
 import com.nickcoblentz.montoya.PayloadUpdateMode
 import com.nickcoblentz.montoya.withUpdatedParsedParameterValue
@@ -24,6 +26,7 @@ import java.nio.charset.Charset
 import javax.swing.SwingUtilities
 import com.nickcoblentz.montoya.sendRequestWithUpdatedContentLength
 import com.nickcoblentz.montoya.withUpdatedContentLength
+import scanner.CheckParameters
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
@@ -40,6 +43,7 @@ class HttpInterceptor(
     private val uniqScannedParameters: MutableSet<String> = HashSet() // 记录已扫描的参数
     private val requestPayloadMap: MutableMap<HttpRequest?, Pair<String, String>> = HashMap() // 记录请求的参数和payload
     private val output = api.logging()
+    private val requestTimeout = 10000L // 10秒超时
 
     fun clear() {
         uniqScannedParameters.clear()
@@ -64,7 +68,7 @@ class HttpInterceptor(
     }
 
 
-    private fun processHttpResponse(responseReceived: HttpResponseReceived) {
+     fun processHttpResponse(responseReceived: HttpResponseReceived) {
 
 
         if (!requestResponseUtils.isRequestAllowed(responseReceived)) return
@@ -88,26 +92,63 @@ class HttpInterceptor(
             modifiedLog.addExpectedEntriesForMD5(tmpParametersMD5, newRequests.size)
             scheduleRequests(newRequests, tmpParametersMD5)
         }
+
+    }
+
+    fun processHttpResponse(responseReceived: HttpRequestResponse) {
+
+
+//        if (!requestResponseUtils.isRequestAllowed(responseReceived)) return
+
+        val originalRequest = responseReceived.request()
+
+        val originalRequestResponse = HttpRequestResponse.httpRequestResponse(originalRequest, responseReceived.response())
+
+        val tmpParametersMD5 =
+            requestResponseUtils.calculateMD5(originalRequest.parameters().filter { it.type().name != "COOKIE" }
+                .map { "${originalRequest.url().split('?')[0]} | ${it.name()} | ${it.type()}" }.toString())
+        val logIndex = logs.add(tmpParametersMD5, originalRequestResponse)
+        if (logIndex >= 0) {
+            val parameters = originalRequest.parameters()
+            val newRequests = generateRequestByPayload(originalRequest, parameters, configs.payloads)
+            output.logToOutput(
+                "｜开始扫描: ${
+                    originalRequest.url().split('?')[0]
+                }｜ 总参数数量： ${parameters.count{it.type().name !="COOKIE"}} | 预计请求数：${newRequests.size}"
+            )
+            modifiedLog.addExpectedEntriesForMD5(tmpParametersMD5, newRequests.size)
+            scheduleRequests(newRequests, tmpParametersMD5)
+        }
     }
 
 
     fun scheduleRequests(newRequests: List<HttpRequest>, tmpParametersMD5: String) {
-        newRequests.forEachIndexed { index, newRequest ->
-            // 使用固定的增量来确保每个请求之间有足够的间隔
-            val delay = (index * configs.fixedIntervalTime) + Random.nextLong(
-                0,
-                configs.randomCheckTimer
-            ) // 每个请求至少间隔1秒，并且有额外的随机抖动
-            executorService.schedule({
-                try {
-                    val response = api.http().sendRequestWithUpdatedContentLength(newRequest)
-                    if (response != null) {
-                        processResponse(tmpParametersMD5, response)
+        val batchSize = 5
+        newRequests.chunked(batchSize).forEachIndexed { batchIndex, batch ->
+            batch.forEach { newRequest ->
+                val batchDelay = batchIndex * configs.fixedIntervalTime
+                val randomDelay = Random.nextLong(0, configs.randomCheckTimer / 2)
+                val delay = batchDelay + randomDelay
+
+                val future = executorService.schedule({
+                    try {
+                        val response = api.http().sendRequestWithUpdatedContentLength(newRequest)
+                        if (response != null) {
+                            processResponse(tmpParametersMD5, response)
+                        }
+                    } catch (e: Exception) {
+                        api.logging().logToError("Error sending request", e)
                     }
-                } catch (e: Exception) {
-                    api.logging().logToError("Error sending request", e)
-                }
-            }, delay, TimeUnit.MILLISECONDS)
+                }, delay, TimeUnit.MILLISECONDS)
+
+                // 添加超时控制
+                executorService.schedule({
+                    if (!future.isDone) {
+                        future.cancel(true)
+                        api.logging().logToError("Request timeout for: ${newRequest.url()}")
+                    }
+                }, requestTimeout, TimeUnit.MILLISECONDS)
+            }
         }
     }
 
