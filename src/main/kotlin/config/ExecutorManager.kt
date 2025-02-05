@@ -17,10 +17,10 @@ class ExecutorManager private constructor() {
 
     val executorService: ScheduledExecutorService by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         ScheduledThreadPoolExecutor(
-            5, // corePoolSize
+            30, // corePoolSize
             ThreadPoolExecutor.CallerRunsPolicy()
         ).apply {
-            maximumPoolSize = 10
+            maximumPoolSize = 150
             setKeepAliveTime(7L, TimeUnit.SECONDS)
             allowCoreThreadTimeOut(true)
         }

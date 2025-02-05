@@ -28,8 +28,8 @@ enum class Configs {
     var neverScanRegex: String = "(delete|del)"
 
     var filterStatusButton: Boolean = true
-    var randomCheckTimer:Long = 5000 // 随机扫描时间
-    var fixedIntervalTime : Long = 300
+    var randomCheckTimer: Long = 1000 // 随机扫描时间改为1秒
+    var fixedIntervalTime: Long = 100 // 固定间隔改为100ms
 
     var urlFileExtension:MutableList<String> = mutableListOf(
         "js", "css", "jpg", "jpeg", "png", "gif", "ico",

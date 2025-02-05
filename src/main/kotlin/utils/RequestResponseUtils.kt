@@ -1,6 +1,5 @@
 package utils
 
-import burp.api.montoya.MontoyaApi
 import burp.api.montoya.core.Marker
 import burp.api.montoya.core.ToolType
 import burp.api.montoya.http.handler.HttpResponseReceived
@@ -14,7 +13,6 @@ import com.nickcoblentz.montoya.withUpdatedContentLength
 import config.Configs
 import model.logentry.LogEntry
 import model.logentry.ModifiedLogDataModel
-import java.lang.reflect.Parameter
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.util.regex.Pattern
@@ -73,7 +71,6 @@ class RequestResponseUtils {
         ) {
             // 判断请求中不仅仅是包含Cookie
             val hasAnyParams = originalRequest.hasParameters()
-//            originalRequest.parameters().stream().forEach{ t -> println("${t.name()}  ${t.type()}")   }
             val onlyCookies = !originalRequest.hasParameters(HttpParameterType.URL) &&
                     !originalRequest.hasParameters(HttpParameterType.BODY) && !originalRequest.hasParameters(
                 HttpParameterType.JSON

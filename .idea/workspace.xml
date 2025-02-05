@@ -8,17 +8,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="8b06b7e0-a10b-4d35-9714-4a7effa211e3" name="更改" comment="1.0.0">
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/controller/HtDe.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gradle.properties" beforeDir="false" afterPath="$PROJECT_DIR$/gradle.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/MyExtension.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/MyExtension.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/config/Configs.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/config/Configs.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/config/DataPersistence.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/config/DataPersistence.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/controller/HttpInterceptor.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/controller/HttpInterceptor.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/ui/components/LogViewPanel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/ui/components/LogViewPanel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/ui/components/SettingPanel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/ui/components/SettingPanel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/config/ExecutorManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/config/ExecutorManager.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/scanner/CheckParameters.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/scanner/CheckParameters.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/utils/RequestResponseUtils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/utils/RequestResponseUtils.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -43,28 +39,6 @@
               <path>
                 <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
                 <item name="KotlinBurpExtensionBase-master-cursors" type="f1a62948:ProjectNode" />
-              </path>
-              <path>
-                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
-                <item name="KotlinBurpExtensionBase-master-cursors" type="f1a62948:ProjectNode" />
-                <item name="Tasks" type="e4a08cd1:TasksNode" />
-              </path>
-              <path>
-                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
-                <item name="KotlinBurpExtensionBase-master-cursors" type="f1a62948:ProjectNode" />
-                <item name="Tasks" type="e4a08cd1:TasksNode" />
-                <item name="shadow" type="c8890929:TasksNode$1" />
-              </path>
-              <path>
-                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
-                <item name="KotlinBurpExtensionBase-master-cursors" type="f1a62948:ProjectNode" />
-                <item name="Tasks" type="e4a08cd1:TasksNode" />
-                <item name="verification" type="c8890929:TasksNode$1" />
-              </path>
-              <path>
-                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
-                <item name="KotlinBurpExtensionBase-master-cursors" type="f1a62948:ProjectNode" />
-                <item name="Dependencies" type="6de06a37:ExternalSystemViewDefaultContributor$MyDependenciesNode" />
               </path>
             </expand>
             <select />
@@ -93,6 +67,12 @@
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/JaveleyQAQ/sql.git",
+    "accountId": "36d06e0a-3a10-4848-9467-ad0092c8df79"
+  }
+}]]></component>
   <component name="HighlightingSettingsPerFile">
     <setting file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.ncoblentz/BurpMontoyaLibrary/0.1.26/1448c9c4fa570639bdde8947163e073bc856ebcc/BurpMontoyaLibrary-0.1.26-sources.jar!/com/nickcoblentz/montoya/HttpRequest.kt" root0="SKIP_INSPECTION" />
     <setting file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/net.portswigger.burp.extensions/montoya-api/2024.11/6e4aed05d30c3f0d31b40c7dca218bbfbe192576/montoya-api-2024.11-sources.jar!/burp/api/montoya/http/RequestOptions.java" root0="SKIP_INSPECTION" />
@@ -113,7 +93,7 @@
   &quot;associatedIndex&quot;: 3
 }</component>
   <component name="ProjectId" id="2m3VgxD38imLSd8uyISVXTGti0F" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+  <component name="ProjectLevelVcsManager">
     <ConfirmationsSetting value="2" id="Add" />
   </component>
   <component name="ProjectViewState">
@@ -281,8 +261,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-fdfe4dae3a2d-intellij.indexing.shared.core-IU-243.22562.59" />
-        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-IU-243.22562.59" />
+        <option value="bundled-jdk-9823dce3aa75-28390b856d98-intellij.indexing.shared.core-IU-251.14649.49" />
+        <option value="bundled-js-predefined-d6986cc7102b-b81319f9767f-JavaScript-IU-251.14649.49" />
       </set>
     </attachedChunks>
   </component>
@@ -358,7 +338,11 @@
       <workItem from="1736757325560" duration="3705000" />
       <workItem from="1736818341654" duration="3531000" />
       <workItem from="1736837934609" duration="598000" />
-      <workItem from="1736844653167" duration="34709000" />
+      <workItem from="1736844653167" duration="42615000" />
+      <workItem from="1737095239166" duration="14000" />
+      <workItem from="1737337731106" duration="6420000" />
+      <workItem from="1737355908009" duration="3737000" />
+      <workItem from="1738719994621" duration="1172000" />
     </task>
     <task id="LOCAL-00001" summary="1.0.0">
       <option name="closed" value="true" />
@@ -384,7 +368,15 @@
       <option name="project" value="LOCAL" />
       <updated>1735881003625</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="1.0.0">
+      <option name="closed" value="true" />
+      <created>1738721248010</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1738721248010</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -414,7 +406,7 @@
         </breakpoint>
         <line-breakpoint enabled="true" type="kotlin-function">
           <url>file://$PROJECT_DIR$/src/main/kotlin/utils/RequestResponseUtils.kt</url>
-          <line>232</line>
+          <line>229</line>
           <properties class="utils.RequestResponseUtils" method="findResponseDifferences">
             <option name="EMULATED" value="true" />
             <option name="WATCH_EXIT" value="false" />
@@ -425,6 +417,11 @@
           <url>file://$PROJECT_DIR$/src/main/kotlin/ui/components/DiffViewEditPanel.kt</url>
           <line>62</line>
           <option name="timeStamp" value="11" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/net.portswigger.burp.extensions/montoya-api/2024.11/6e4aed05d30c3f0d31b40c7dca218bbfbe192576/montoya-api-2024.11-sources.jar!/burp/api/montoya/scanner/AuditResult.java</url>
+          <line>21</line>
+          <option name="timeStamp" value="12" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
