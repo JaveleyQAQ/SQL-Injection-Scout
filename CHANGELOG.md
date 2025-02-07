@@ -1,4 +1,10 @@
 # 更新日志
+## 1.0.3
+- 将大于`Max Param Count`的请求加入日志列表，并使用`ExcessParams`标记
+- 对`null`扫描添加逻辑，忽略`302`状态码时依然为`interesting`
+- 对`302`进行扫描
+- 修改了内置一些`payload`
+
 ## 1.0.2 2025年 1月16日
 - 修复一直处于scanning扫描状态[#3 ](https://github.com/JaveleyQAQ/SQL-Injection-Scout/issues/5)
 
