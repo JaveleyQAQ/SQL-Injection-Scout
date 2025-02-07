@@ -7,23 +7,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8b06b7e0-a10b-4d35-9714-4a7effa211e3" name="更改" comment="1.0.0">
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/config/ColorManager.kt" afterDir="false" />
+    <list default="true" id="8b06b7e0-a10b-4d35-9714-4a7effa211e3" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gradle.properties" beforeDir="false" afterPath="$PROJECT_DIR$/gradle.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/MyExtension.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/MyExtension.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/config/Configs.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/config/Configs.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/controller/HtDe.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/controller/HttpInterceptor.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/controller/HttpInterceptor.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/logentry/ColorManager.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/logentry/LogEntry.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/logentry/LogEntry.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/logentry/LogEntryModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/logentry/LogEntryModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/logentry/ModifiedLogEntry.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/logentry/ModifiedLogEntry.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/scanner/CheckParameters.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/ui/components/LogViewPanel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/ui/components/LogViewPanel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/utils/RequestResponseUtils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/utils/RequestResponseUtils.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -95,7 +81,13 @@
         <option value="Javeley &lt;javeleyqaq@outlook.com&gt;" />
       </list>
     </option>
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="628aa7deaf74199c39e94208909b2f41996cc7b2" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="SWAP_SIDES_IN_COMPARE_BRANCHES" value="true" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {
@@ -103,12 +95,12 @@
     &quot;assignee&quot;: &quot;JaveleyQAQ&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/JaveleyQAQ/sql",
-    "accountId": "36d06e0a-3a10-4848-9467-ad0092c8df79"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/JaveleyQAQ/sql&quot;,
+    &quot;accountId&quot;: &quot;36d06e0a-3a10-4848-9467-ad0092c8df79&quot;
   }
-}]]></component>
+}</component>
   <component name="HighlightingSettingsPerFile">
     <setting file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.ncoblentz/BurpMontoyaLibrary/0.1.26/1448c9c4fa570639bdde8947163e073bc856ebcc/BurpMontoyaLibrary-0.1.26-sources.jar!/com/nickcoblentz/montoya/HttpRequest.kt" root0="SKIP_INSPECTION" />
     <setting file="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/net.portswigger.burp.extensions/montoya-api/2024.11/6e4aed05d30c3f0d31b40c7dca218bbfbe192576/montoya-api-2024.11-sources.jar!/burp/api/montoya/http/RequestOptions.java" root0="SKIP_INSPECTION" />
@@ -302,11 +294,11 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Gradle.KotlinBurpExtensionBase-master-cursors [shadowJar]" />
-        <item itemvalue="Gradle.KotlinBurpExtensionBase-master-cursors [clean]" />
         <item itemvalue="Kotlin.MainKt (1)" />
         <item itemvalue="Kotlin.ConfigManagerKt (2)" />
         <item itemvalue="Kotlin.ConfigManagerKt (1)" />
+        <item itemvalue="Gradle.KotlinBurpExtensionBase-master-cursors [shadowJar]" />
+        <item itemvalue="Gradle.KotlinBurpExtensionBase-master-cursors [clean]" />
       </list>
     </recent_temporary>
   </component>
