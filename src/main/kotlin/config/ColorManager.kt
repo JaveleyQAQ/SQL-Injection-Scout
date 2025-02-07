@@ -1,4 +1,4 @@
-package model.logentry
+package config
 
 import java.awt.Color
 
@@ -23,4 +23,4 @@ class ColorManager {
             else -> listOf(null, null)  // 默认使用灰色
         }
     }
-} 
+}

@@ -58,26 +58,24 @@ class RequestResponseUtils {
     fun isRequestAllowed(httpResponseReceived: HttpResponseReceived): Boolean {
 
         val originalRequest = httpResponseReceived.initiatingRequest()
-        val httpRequestMethod = originalRequest.method().equals("OPTIONS")
+        if (originalRequest.method().equals("OPTIONS")) return false
 
         if (!isAllowedRequestFileExtension(originalRequest) && !isAllowedRegexURLs(originalRequest.path())) {
             return false
         }
-        if (!httpRequestMethod &&
-            isAllowedResponseType(httpResponseReceived)
-            && isAllowedParamsCounts(originalRequest)
+        if (isAllowedResponseType(httpResponseReceived)
+            //           && isAllowedParamsCounts(originalRequest)
             && isAllowedResponseStatus(httpResponseReceived)
             && checkConfigsChoseBox(httpResponseReceived)
         ) {
             // 判断请求中不仅仅是包含Cookie
             val hasAnyParams = originalRequest.hasParameters()
             val onlyCookies = !originalRequest.hasParameters(HttpParameterType.URL) &&
-                    !originalRequest.hasParameters(HttpParameterType.BODY) && !originalRequest.hasParameters(
-                HttpParameterType.JSON
-            ) && !originalRequest.hasParameters(HttpParameterType.XML_ATTRIBUTE)
-                    && !originalRequest.hasParameters(HttpParameterType.XML)
-                    && !originalRequest.hasParameters(HttpParameterType.MULTIPART_ATTRIBUTE)
-            originalRequest.hasParameters(HttpParameterType.COOKIE)
+                    !originalRequest.hasParameters(HttpParameterType.BODY) &&
+                    !originalRequest.hasParameters(HttpParameterType.JSON) &&
+                    !originalRequest.hasParameters(HttpParameterType.XML_ATTRIBUTE) &&
+                    !originalRequest.hasParameters(HttpParameterType.XML) &&
+                    !originalRequest.hasParameters(HttpParameterType.MULTIPART_ATTRIBUTE)
 
             return hasAnyParams && !onlyCookies
         }
@@ -97,7 +95,7 @@ class RequestResponseUtils {
     }
 
     private fun isAllowedResponseStatus(response: HttpResponse): Boolean {
-        return response.statusCode().toString() == "200"
+        return response.statusCode().toString() == "200" || response.statusCode().toString() == "302"
     }
 
     private fun checkConfigsChoseBox(responseReceived: HttpResponseReceived): Boolean {
@@ -129,8 +127,16 @@ class RequestResponseUtils {
         return true
     }
 
-    private fun isAllowedParamsCounts(request: HttpRequest): Boolean {
-        return  request.parameters().count{it.type() != HttpParameterType.COOKIE} <= configs.maxAllowedParameterCount
+    fun isAllowedParamsCounts(request: HttpRequest): Boolean {
+        val nonCookieParamCount = request.parameters().count { it.type() != HttpParameterType.COOKIE }
+        return nonCookieParamCount >= 1 && nonCookieParamCount <= configs.maxAllowedParameterCount
+    }
+
+    /**
+     * 取得请求中的参数个数，不包含Cookie参数
+     */
+    fun getAllowedParamsCounts(request: HttpRequest): Int {
+        return request.parameters().count { it.type() != HttpParameterType.COOKIE }
     }
 
     fun markerResponseDifferent(
@@ -141,7 +147,7 @@ class RequestResponseUtils {
         val newSize = response2.bodyToString().length
         return when {
             oldSize == newSize -> "same"
-            newSize > oldSize -> "+${newSize - oldSize}"
+            newSize > oldSize -> "+ ${newSize - oldSize}"
             else -> "- ${oldSize - newSize}"
         }
     }
@@ -345,6 +351,7 @@ class RequestResponseUtils {
         }
         return HttpRequest.httpRequest(request.httpService(), requestAsString).withUpdatedContentLength(true)
     }
+
     fun replaceAllParameterValuesWithNull(request: HttpRequest, parameters: List<ParsedHttpParameter>): HttpRequest {
         val parameterPositions = parameters.map { param ->
             Triple(

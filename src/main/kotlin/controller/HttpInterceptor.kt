@@ -9,8 +9,6 @@ import burp.api.montoya.http.message.HttpRequestResponse
 import burp.api.montoya.http.message.params.HttpParameterType
 import burp.api.montoya.http.message.params.ParsedHttpParameter
 import burp.api.montoya.http.message.requests.HttpRequest
-import burp.api.montoya.scanner.AuditConfiguration
-import burp.api.montoya.scanner.BuiltInAuditConfiguration
 import com.github.difflib.DiffUtils
 import com.nickcoblentz.montoya.PayloadUpdateMode
 import com.nickcoblentz.montoya.withUpdatedParsedParameterValue
@@ -26,7 +24,6 @@ import java.nio.charset.Charset
 import javax.swing.SwingUtilities
 import com.nickcoblentz.montoya.sendRequestWithUpdatedContentLength
 import com.nickcoblentz.montoya.withUpdatedContentLength
-import scanner.CheckParameters
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
@@ -62,24 +59,31 @@ class HttpInterceptor(
                     .isFromTool(ToolType.EXTENSIONS) || responseReceived.toolSource().isFromTool(ToolType.INTRUDER)
             ) return@submit
 
-            if (responseReceived != null) processHttpResponse(responseReceived)
+            if (responseReceived != null) processHttpHandler(responseReceived)
         }
         return ResponseReceivedAction.continueWith(responseReceived)
     }
 
 
-     fun processHttpResponse(responseReceived: HttpResponseReceived) {
+    fun processHttpHandler(responseReceived: HttpResponseReceived) {
 
 
         if (!requestResponseUtils.isRequestAllowed(responseReceived)) return
 
         val originalRequest = responseReceived.initiatingRequest()
+        val tmpParametersMD5 =
+            requestResponseUtils.calculateMD5(originalRequest.parameters().filter { it.type().name != "COOKIE" }
+                .map { "${originalRequest.url().split('?')[0]} | ${it.name()} | ${it.type()}" }.toString())
 
+        if (requestResponseUtils.getAllowedParamsCounts(originalRequest) > configs.maxAllowedParameterCount) {
+            val originalRequestResponse = HttpRequestResponse.httpRequestResponse(originalRequest, responseReceived)
+            logs.markRequestWithExcessiveParameters(tmpParametersMD5,originalRequestResponse)
+            output.logToError("${originalRequestResponse.request().path()} 请求参数超出允许最大参数数量！")
+            return
+        }
         val originalRequestResponse = HttpRequestResponse.httpRequestResponse(originalRequest, responseReceived)
 
-        val tmpParametersMD5 =
-            requestResponseUtils.calculateMD5(originalRequest.parameters().filter { it.type().name != "COOKIE" }
-                .map { "${originalRequest.url().split('?')[0]} | ${it.name()} | ${it.type()}" }.toString())
+
         val logIndex = logs.add(tmpParametersMD5, originalRequestResponse)
         if (logIndex >= 0) {
             val parameters = originalRequest.parameters()
@@ -87,40 +91,13 @@ class HttpInterceptor(
             output.logToOutput(
                 "｜开始扫描: ${
                     originalRequest.url().split('?')[0]
-                }｜ 总参数数量： ${parameters.count{it.type().name !="COOKIE"}} | 预计请求数：${newRequests.size}"
+                }｜ 总参数数量： ${parameters.count { it.type().name != "COOKIE" }} | 预计请求数：${newRequests.size}"
             )
             modifiedLog.addExpectedEntriesForMD5(tmpParametersMD5, newRequests.size)
             scheduleRequests(newRequests, tmpParametersMD5)
         }
 
     }
-
-    fun processHttpResponse(responseReceived: HttpRequestResponse) {
-
-
-//        if (!requestResponseUtils.isRequestAllowed(responseReceived)) return
-
-        val originalRequest = responseReceived.request()
-
-        val originalRequestResponse = HttpRequestResponse.httpRequestResponse(originalRequest, responseReceived.response())
-
-        val tmpParametersMD5 =
-            requestResponseUtils.calculateMD5(originalRequest.parameters().filter { it.type().name != "COOKIE" }
-                .map { "${originalRequest.url().split('?')[0]} | ${it.name()} | ${it.type()}" }.toString())
-        val logIndex = logs.add(tmpParametersMD5, originalRequestResponse)
-        if (logIndex >= 0) {
-            val parameters = originalRequest.parameters()
-            val newRequests = generateRequestByPayload(originalRequest, parameters, configs.payloads)
-            output.logToOutput(
-                "｜开始扫描: ${
-                    originalRequest.url().split('?')[0]
-                }｜ 总参数数量： ${parameters.count{it.type().name !="COOKIE"}} | 预计请求数：${newRequests.size}"
-            )
-            modifiedLog.addExpectedEntriesForMD5(tmpParametersMD5, newRequests.size)
-            scheduleRequests(newRequests, tmpParametersMD5)
-        }
-    }
-
 
     fun scheduleRequests(newRequests: List<HttpRequest>, tmpParametersMD5: String) {
         val batchSize = 5
@@ -167,24 +144,24 @@ class HttpInterceptor(
         return result
     }
 
-
+    /**
+     * 对修改后的响应做处理
+     */
     private fun processResponse(md5: String, httpRequestResponse: HttpRequestResponse) {
 
         val response = httpRequestResponse.response()
         val request = httpRequestResponse.request()
-        val checkSQL = requestResponseUtils.checkErrorSQLException(response.body().toString())
-
-
 
         val (parameter, payload) = requestPayloadMap[request] ?: return
         SwingUtilities.invokeLater {
+            //检测response是否存在sqlError
+            val checkSQL = requestResponseUtils.checkErrorSQLException(response.body().toString())
             val originalRequestResponse = logs.getEntry(md5)?.requestResponse
             // 使用新方法处理响应
             var (modifiedEntry, diffText) = requestResponseUtils.processResponseWithDifference(
                 logs, md5, httpRequestResponse, parameter, payload, checkSQL
             )
-
-
+            // 对比差异
             val originalBody =
                 readAllLinesFromByteArray(originalRequestResponse?.response()?.body()?.bytes, Charsets.UTF_8)
             val revisedBody = readAllLinesFromByteArray(response?.body()?.bytes, Charsets.UTF_8)
@@ -203,15 +180,20 @@ class HttpInterceptor(
                 diffText = "The responses have the same length but different contents.  $diffText"
             }
 
-
             // 若存在 SQL 匹配项，则标记为红色并记录
             if (!checkSQL.isNullOrEmpty()) {
                 api.logging()
-                    .logToOutput("[${request.url()}] parameter [$parameter] using  payload [$payload] match  response [$checkSQL] ✅")
+                    .logToOutput("[+] ${request.url()}] parameter [$parameter] using  payload [$payload] match  response [$checkSQL] ✅")
                 logs.setVulnerability(md5, true)
                 modifiedEntry.color = listOf(Color.RED, null)
                 diffText = checkSQL
             }
+            // 解决 部分参数设置为 null时， 302/401状态存在差异时候 有趣的/绿色的
+            if (payload == "null" && modifiedEntry.status.toString()!="200") {
+                modifiedEntry.color = listOf(Color.LIGHT_GRAY, null)
+            }
+
+
             modifiedLog.addModifiedEntry(md5, modifiedEntry, diffText)
         }
     }
@@ -224,13 +206,14 @@ class HttpInterceptor(
         parameters: List<ParsedHttpParameter>,
         payloads: List<String>,
     ): List<HttpRequest> {
+
         val requestListWithPayload = mutableListOf<HttpRequest>()
         addEmptyJsonRequest(request, requestListWithPayload)
         addAllParamsNullRequest(request, parameters, requestListWithPayload)
 
         //参数处理
         parameters.forEach { parameter ->
-            if (!isParameterSkippable(parameter)) {
+            if (!isParameterShippable(parameter)) {
                 val parameterFlag = createParameterFlag(request, parameter)
                 if (!uniqScannedParameters.contains(parameterFlag)) {
                     uniqScannedParameters.add(parameterFlag)
@@ -261,7 +244,7 @@ class HttpInterceptor(
     /**
      * 检测参数位置是否值得跳过
      */
-    private fun isParameterSkippable(parameter: ParsedHttpParameter): Boolean {
+    private fun isParameterShippable(parameter: ParsedHttpParameter): Boolean {
         return parameter.type().name.uppercase() == "COOKIE"
     }
 
@@ -274,6 +257,7 @@ class HttpInterceptor(
 
     /**
      * 考虑是否需要 二次处理payload
+     * 这里对int 进行-1处理
      */
     private fun preparePayloads(parameterValue: String, originalPayloads: List<String>): List<String> {
         // 备份原始 payloads 的副本，不然每次add都会修改原始payloads
@@ -338,6 +322,7 @@ class HttpInterceptor(
                     module
                 ).withUpdatedContentLength(true)
             }
+
             else ->
                 return request.withUpdatedParsedParameterValue(
                     parameter,

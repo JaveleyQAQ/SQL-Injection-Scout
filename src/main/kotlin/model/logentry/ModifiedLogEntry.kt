@@ -1,5 +1,6 @@
 package model.logentry
 
+import config.ColorManager
 import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -26,6 +27,7 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
         entryCompletionCounters.computeIfAbsent(md5) { AtomicInteger(count) }
     }
 
+    @Synchronized
     private fun checkEntryCompletion(md5: String) {
         entryCompletionCounters[md5]?.decrementAndGet()?.let { remaining ->
             if (remaining <= 0) {
@@ -48,14 +50,14 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
         logs?.modifiedEntries?.forEachIndexed { index, entry ->
             val responseCode = entry.status.toInt()
             val diffCount = diffCountMap[entry.diff] ?: 0
-            if (entry.color[0] == null){
+            if (entry.color[0] == null) {
                 entry.color = colorManager.determineColor(entry.diff, entry.payload.length, responseCode, diffCount)
             }
 
-            if ( entry.color[0] == Color.GREEN) {
+            if (entry.color[0] == Color.GREEN) {
                 hasInteresting = true
                 logs.interesting = true
-            } else if ( entry.color[0] == Color.LIGHT_GRAY) {
+            } else if (entry.color[0] == Color.LIGHT_GRAY) {
                 entriesToRecolor.add(index)
             }
         }
@@ -67,6 +69,7 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
 
 
     // 完成后检查操作
+    @Synchronized
     private fun onAllEntriesAdded(md5: String): Boolean {
         logEntry.setIsChecked(md5, true)
         val logs = logEntry.getLogs()[md5]
@@ -91,9 +94,20 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
             allColorAreGray -> false  // 如果所有颜色都是灰色，则不有趣
             else -> true
         }
+        // 如果 ''' 导致差异，而闭合 '''' 导致相同， 则单独处理标记
+        val tmp = logs!!.modifiedEntries.find { it.payload == "''''"  }
+        val tmp_ = logs!!.modifiedEntries.find { it.payload == "'''" }
+        if (tmp != null && tmp_ != null) {
+            if (tmp_.diff != "same" && tmp.diff == "same") {
+//                print("【 ${tmp_.payload}  temp_ diff:${tmp_.diff} , tmp_.diff != \"same\" ?   ${tmp_.diff != "same"}    】")
+                tmp.diff = tmp.diff + "?"
+                tmp.color = listOf(Color.RED, Color.BLACK)
+            }
 
-        println("All entries for MD5 $md5 have been added. allColorAreGray=$allColorAreGray, entries=${logs?.modifiedEntries?.size}")
+        }
+
         sortByColor()
+        println("All entries for MD5 $md5 have been added. allColorAreGray=$allColorAreGray, entries=${logs?.modifiedEntries?.size}")
         return true
     }
 
@@ -135,6 +149,7 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
         val entries = logEntry.getEntry(md5)?.modifiedEntries?.toList()
         return entries?.getOrNull(index)
     }
+
     @Synchronized
     fun addModifiedEntry(md5: String, modifiedEntry: ModifiedLogDataModel, diffString: String?) {
         logEntry.getEntry(md5)?.modifiedEntries?.let { entries ->
@@ -154,10 +169,10 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
         currentMD5?.let { md5 ->
             logEntry.getEntry(md5)?.let { entry ->
                 // 首先将条目分成两组：灰色和非灰色
-                val (grayEntries, nonGrayEntries) = entry.modifiedEntries.partition { 
-                    it.color[0] == Color.LIGHT_GRAY 
+                val (grayEntries, nonGrayEntries) = entry.modifiedEntries.partition {
+                    it.color[0] == Color.LIGHT_GRAY
                 }
-                
+
                 // 对非灰色条目进行排序，简化次级排序逻辑
                 val sortedNonGray = nonGrayEntries.sortedWith(
                     compareBy<ModifiedLogDataModel> { modifiedEntry ->
@@ -190,7 +205,7 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
                 entry.modifiedEntries.clear()
                 entry.modifiedEntries.addAll(sortedNonGray)
                 entry.modifiedEntries.addAll(grayEntries)
-                
+
                 fireTableDataChanged()
             }
         }

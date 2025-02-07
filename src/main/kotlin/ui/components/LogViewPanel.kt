@@ -22,9 +22,9 @@ class LogViewPanel(
 ) {
     private val userInterface = api.userInterface()
     private var currentMD5: String? = null
-
+    private val dashBoardPanel = JTabbedPane()
     fun buildUI(): Component {
-        val dashBoardPanel = JTabbedPane()
+
         val logViewSplitPanel = JSplitPane(JSplitPane.VERTICAL_SPLIT)
         val requestResponseTabs = JSplitPane(JSplitPane.HORIZONTAL_SPLIT)  //用于展示底部 request 和 response 的数据面板
         // 创建请求响应编辑器
@@ -97,10 +97,10 @@ class LogViewPanel(
             columnModel.apply {
                 getColumn(0).preferredWidth = 50  // #
                 getColumn(1).preferredWidth = 100 // Parameter
-                getColumn(2).preferredWidth = 200 // Payload
+                getColumn(2).preferredWidth = 170 // Payload
                 getColumn(3).preferredWidth = 100 // Diff
                 getColumn(4).preferredWidth = 70  // Status
-                getColumn(5).preferredWidth = 70  // Time
+                getColumn(5).preferredWidth = 60  // Time
             }
         }
 
@@ -266,4 +266,11 @@ class LogViewPanel(
 
         return dashBoardPanel
     }
+
+    fun setTitleColor() {
+        if (dashBoardPanel.parent != null) {
+            dashBoardPanel.parent.background = Color.RED
+        }
+    }
+
 }

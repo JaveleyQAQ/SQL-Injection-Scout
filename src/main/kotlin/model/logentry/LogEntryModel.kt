@@ -17,5 +17,6 @@ data class LogEntryModel(
     val mimeType: String = requestResponse.response().mimeType().toString(),
     var hasVulnerability: Boolean = false,
     val modifiedEntries: MutableList<ModifiedLogDataModel> = mutableListOf(),
-    var interesting:Boolean = false
+    var interesting:Boolean = false,
+    var comments: String? = null
 )

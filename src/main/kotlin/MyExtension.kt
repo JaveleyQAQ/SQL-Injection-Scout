@@ -11,9 +11,8 @@ import config.DataPersistence
 import controller.HttpInterceptor
 import model.logentry.LogEntry
 import model.logentry.ModifiedLogEntry
-import scanner.CheckParameters
 import ui.components.LogViewPanel
-import ui.components.SettingPanel
+import javax.swing.SwingUtilities
 
 //import ui.components.MyHttpRequestEditorProvider
 
@@ -23,31 +22,22 @@ class MyExtension : BurpExtension, ExtensionUnloadingHandler {
     private lateinit var modifiedLog: ModifiedLogEntry
     private lateinit var httpInterceptor: HttpInterceptor
     private lateinit var dataPersistence: DataPersistence
+    private lateinit var logViewPanel: LogViewPanel
 
     override fun initialize(api: MontoyaApi) {
         this.api = api
         val configs = Configs.INSTANCE
         api.extension().setName("${configs.extensionName}\uD83D\uDE2D")
 
-        // 初始化顺序很重要
         dataPersistence = DataPersistence(api)  // 先初始化数据持久化
         logs = LogEntry(api)
         modifiedLog = ModifiedLogEntry(logs)
-        val checkParameters = CheckParameters(logs, api, modifiedLog)
         httpInterceptor = HttpInterceptor(logs, api, modifiedLog)
-
-
-
-        // 注册UI组件
-        api.userInterface().registerSuiteTab("SQL Scout \uD83D\uDE2D", LogViewPanel(api, logs, modifiedLog, httpInterceptor,dataPersistence).buildUI())
+        logViewPanel = LogViewPanel(api, logs, modifiedLog, httpInterceptor,dataPersistence)
 
         // 注册HTTP处理器和UI
+        api.userInterface().registerSuiteTab("SQL Scout",logViewPanel.buildUI() )
         api.http().registerHttpHandler(httpInterceptor)
-
-        api.scanner().registerScanCheck(checkParameters)
-
-
-
 
         api.logging().logToOutput(
             """
@@ -59,7 +49,6 @@ class MyExtension : BurpExtension, ExtensionUnloadingHandler {
         )
     }
     override fun extensionUnloaded() {
-//        extensionUnloaded()
         Runtime.getRuntime().addShutdownHook(Thread {
             ExecutorManager.get().shutdown()
         })

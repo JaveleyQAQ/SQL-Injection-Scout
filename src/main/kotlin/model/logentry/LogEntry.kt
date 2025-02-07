@@ -16,7 +16,7 @@ import javax.swing.table.AbstractTableModel
 class LogEntry(val api: MontoyaApi) : AbstractTableModel() {
     private val logs: ConcurrentHashMap<String, LogEntryModel> = ConcurrentHashMap()
     private val columnNames =
-        listOf("#", "Method", "Host", "Path", "Status", "Body Len", "MIME Type", "Flag",)
+        listOf("#", "Method", "Host", "Path", "Status", "Body Len", "MIME Type", "Flag")
 
 
     fun getLogs(): ConcurrentHashMap<String, LogEntryModel> {
@@ -43,6 +43,25 @@ class LogEntry(val api: MontoyaApi) : AbstractTableModel() {
             return index
         }
         return -1
+    }
+
+    /**
+     * 对超出参数个数范围的请求进行单独标记
+     */
+    @Synchronized
+    fun markRequestWithExcessiveParameters(requestHash: String, requestResponse: HttpRequestResponse) {
+        // 检测是否重复
+        if (!logs.containsKey(requestHash)) {
+            val logEntryIndex = logs.size
+            logs[requestHash] = LogEntryModel(
+                id = logEntryIndex,
+                requestResponse = requestResponse,
+                parametersMD5 = requestHash,
+                isChecked = false,
+                comments = "Excessive Parameters"
+            )
+            fireTableRowsInserted(logEntryIndex, logEntryIndex)
+        }
     }
 
     fun getEntry(parametersMD5: String): LogEntryModel? = logs[parametersMD5]
@@ -78,6 +97,7 @@ class LogEntry(val api: MontoyaApi) : AbstractTableModel() {
                 entry.hasVulnerability -> "\uD83D\uDD25"
                 entry.interesting -> "Interesting"
                 entry.isChecked -> "Boring"
+                entry.comments.equals("Excessive Parameters") -> "ExcessParams"
                 else -> "Scanning"
             }
 
@@ -90,7 +110,6 @@ class LogEntry(val api: MontoyaApi) : AbstractTableModel() {
     fun setInteresting(md5: String, value: Boolean) {
         logs[md5]?.interesting = value
     }
-
 
 
     fun clear() {

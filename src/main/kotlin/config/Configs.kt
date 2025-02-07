@@ -37,19 +37,26 @@ enum class Configs {
         "wav", "pdf", "doc", "docx", "xls", "xlsx"
     )
     var payloads: MutableList<String> = mutableListOf<String>(
+        "åååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååå",
         "'\"%df",
-        "'",
-        "\"",
-        "')",
-        "''",
-        "'||'1",
-        "\"||\"1",
+        "'''",
+        "''''",
+        "#{xx}",
+        "#xx}",
         "sb'='\"=\"",
-        "'OR'1\"OR\"1",
-        "'OR'+1+\"OR\"+1=0",
-        "' sleep(3)",
-        "';WAITFOR DELAY '0:0:5'--" ,
-        "' AND (SELECT * FROM (SELECT(SLEEP(5)))a)--",
+
+//        "'",
+//        "\"",
+//        "')",
+//        "''",
+//        "'||'1",
+//        "\"||\"1",
+//        "sb'='\"=\"",
+//        "'OR'1\"OR\"1",
+//        "'OR'+1+\"OR\"+1=0",
+//        "' sleep(3)",
+//        "';WAITFOR DELAY '0:0:5'--" ,
+//        "' AND (SELECT * FROM (SELECT(SLEEP(5)))a)--",
         "SLEEP(3) /*' or SLEEP(3) or'\" or SLEEP(3) or \""
     )
     val ERROR_SYNTAX: Array<String> = arrayOf(
@@ -160,6 +167,10 @@ enum class Configs {
         "系统异常，请稍后再试！",
         "网页访问错误",
         "33333"
+    )
+    var boringWordsError: MutableList<String> = mutableListOf<String>(
+        "Failed to convert value of type ['\"]([^'\"]+)['\"]",
+        "\"error\": \"Bad Request\""
     )
 
 }
