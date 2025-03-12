@@ -4,7 +4,6 @@ import burp.api.montoya.core.Marker
 import burp.api.montoya.core.ToolType
 import burp.api.montoya.http.handler.HttpResponseReceived
 import burp.api.montoya.http.message.HttpRequestResponse
-import burp.api.montoya.http.message.params.HttpParameter
 import burp.api.montoya.http.message.params.HttpParameterType
 import burp.api.montoya.http.message.params.ParsedHttpParameter
 import burp.api.montoya.http.message.requests.HttpRequest
@@ -47,6 +46,27 @@ class RequestResponseUtils {
             }
         }
         return ""
+    }
+
+    fun checkBoringWordInResponse(responses: HttpResponse): String? {
+        /**
+         * 对response进行boringWords检测
+         */
+        val response = java.lang.String(responses.body().bytes, Charsets.UTF_8)
+        if (response.isNullOrEmpty()) return null
+        val cleanedText = response.replace("\\n|\\r|\\r\\n".toRegex(), "")
+
+        for (rule in configs.boringWords) {
+            val pattern = Pattern.compile(rule)
+            if (pattern.matcher(cleanedText).find()) {
+                return rule
+            }
+        }
+        return null
+    }
+
+    fun isBoringWordInResponse(responses: HttpResponse):Boolean{
+        return  checkBoringWordInResponse(responses).isNullOrEmpty()?:false
     }
 
     /**
@@ -139,10 +159,10 @@ class RequestResponseUtils {
         return request.parameters().count { it.type() != HttpParameterType.COOKIE }
     }
 
-    fun markerResponseDifferent(
-        response1: HttpResponse,
-        response2: HttpResponse,
-    ): String {
+    /**
+     * 计算新旧响应长度的差异
+     */
+    private fun calculateRespLen(response1: HttpResponse, response2: HttpResponse, ): String {
         val oldSize = response1.bodyToString().length
         val newSize = response2.bodyToString().length
         return when {
@@ -586,7 +606,7 @@ class RequestResponseUtils {
             originIndex = md5,
             parameter = parameter,
             payload = payload,
-            diff = if (!checkSQL.isNullOrEmpty()) "Error" else markerResponseDifferent(
+            diff = if (!checkSQL.isNullOrEmpty()) "Error" else calculateRespLen(
                 originalRequestResponse.response(),
                 response
             ),

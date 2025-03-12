@@ -24,7 +24,7 @@ class DataPersistence(val api: MontoyaApi) {
     }
 
     fun loadData() {
-        println("DataPersistence loadData ")
+       // println("DataPersistence loadData ")
         // 加载基本配置
         config.startUP = persistenceData.getBoolean("startUP") ?: true
         config.isInScope = persistenceData.getBoolean("isInScope") ?: true
@@ -46,10 +46,10 @@ class DataPersistence(val api: MontoyaApi) {
             }
         }
 
-        persistenceData.getStringList("heuristicWordsError")?.let {
-            config.heuristicWordsError.clear()
+        persistenceData.getStringList("boringWords")?.let {
+            config.boringWords.clear()
             for (i in it){
-                config.heuristicWordsError.add(i)
+                config.boringWords.add(i)
             }
         }
         persistenceData.getStringList("uninterestingType")?.let {
@@ -89,11 +89,11 @@ class DataPersistence(val api: MontoyaApi) {
 
 
 
-//         保存 heuristicWordsError
-        val heuristicList = PersistedList<String>.persistedStringList()
-        heuristicList.clear()
-        heuristicList.addAll(config.heuristicWordsError)
-        persistenceData.setStringList("heuristicWordsError", heuristicList)
+//         保存 boringWords
+        val boringWordsList = PersistedList<String>.persistedStringList()
+        boringWordsList.clear()
+        boringWordsList.addAll(config.boringWords)
+        persistenceData.setStringList("boringWords", boringWordsList)
 
 ////         保存 uninterestingType
         val uninterestingType = PersistedList<String>.persistedStringList()

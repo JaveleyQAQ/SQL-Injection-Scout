@@ -4,6 +4,7 @@ import burp.api.montoya.http.message.HttpRequestResponse
 import java.awt.Color
 
 data class ModifiedLogDataModel(
+
     val originIndex: String,
     val parameter:String,
     val payload:String,

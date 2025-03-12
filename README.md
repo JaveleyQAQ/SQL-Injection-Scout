@@ -23,11 +23,11 @@ SQL Injection Scout 是一个用于 Burp Suite 的扩展，专为帮助安全研
 ## ✅️ 安装
 
 1. 确保已安装 [Burp Suite](https://portswigger.net/burp)。
-2. ~~下载或克隆此项目到本地：~~
+2. 下载或克隆此项目到本地:
    ```bash
-   git  暂时不发 😁
+   git clone  https://github.com/JaveleyQAQ/SQL-Injection-Scout.git
    ```
-3. ~~使用 Gradle 构建项目：~~
+3. 使用 Gradle 构建项目：
    ```bash
    cd SQL-Injection-Scout
    ./gradlew build
@@ -47,9 +47,9 @@ SQL Injection Scout 是一个用于 Burp Suite 的扩展，专为帮助安全研
 ## 🔖 待办事项
 > 先画饼
 
-- ~~**数据持久化：**~~  配置持久化已完成 
-- **启发式检测**：支持自定义 response 的无趣匹配特征，无需再担心频繁误报。
-- ~~**不安全的直接对象引用**：检测和报告不安全的直接对象引用。~~ 已完成 
+- ~~**数据持久化：**~~  配置持久化✅ ｜ 数据持久化❌
+- ~~**启发式检测**：支持自定义 response 的无趣匹配特征，无需再担心频繁误报。~~ ✅ 
+- ~~**不安全的直接对象引用**：检测和报告不安全的直接对象引用。~~ ✅
 - **diff 差异面板**：提供更详细的差异分析面板。
 - **多处 diff 内容查看**：支持查看响应中多处差异。
 - **颜色自定义**：允许用户自定义响应的颜色标记。

@@ -116,7 +116,7 @@ class LoginFrame : JFrame() {
     }
 }
 
-//fun main() {
+//fun utils.main() {
 //    SwingUtilities.invokeLater {
 //        val frame = LoginFrame()
 //        frame.isVisible = true
@@ -144,7 +144,7 @@ fun diffTest(){
     println("+21".toIntOrNull())
 }
 
-//fun main() {
+//fun utils.main() {
 
 //    println("a=1"[2])
 
@@ -173,18 +173,29 @@ fun diffTest(){
     //的到的是You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''='"="' at line
 //}
 
-
-
-class de{
-     val a = 1
-    init {
-        println("apple")
-    }
-}
+data class ModifiedLogDataModel(
+    val vulnerability: Boolean = false
+)
 
 fun main() {
-    println(de().a)
-    println(de().a)
-    println(de().a)
+    // 场景1：所有条目都安全
+    val entries1 = listOf(
+        ModifiedLogDataModel(),
+        ModifiedLogDataModel(),
+        ModifiedLogDataModel()
+    )
+    println("场景1结果: ${entries1.all  { it.vulnerability == false }}") // 输出：false
+
+    // 场景2：存在一个漏洞条目
+    val entries2 = listOf(
+        ModifiedLogDataModel(),
+        ModifiedLogDataModel(vulnerability = true),
+        ModifiedLogDataModel()
+    )
+    println("场景2结果: ${entries2.any { it.vulnerability   }}") // 输出：true
+
+    // 场景3：空列表
+    val entries3 = emptyList<ModifiedLogDataModel>()
+    println("场景3结果: ${entries3.any { it.vulnerability }}") // 输出：false
 }
 

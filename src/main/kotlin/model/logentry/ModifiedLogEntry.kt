@@ -1,11 +1,13 @@
 package model.logentry
 
-import config.ColorManager
-import java.awt.Color
+import processor.helper.color.ModifiedEntrySortHelper
+import processor.helper.color.ModifiedLoggerResponseHelper
+
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+import javax.swing.SwingUtilities
 import javax.swing.table.AbstractTableModel
-import kotlin.math.log
+import kotlin.concurrent.Volatile
 
 /*
  * 记录已被修改的日志模型
@@ -18,124 +20,70 @@ import kotlin.math.log
 
 class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
     private val columnNames = listOf("#", "parameter", "payload", "diff", "status", "time")
-    private var currentMD5: String? = null  //用于记录table1中选中的row
+    @Volatile
+    private var cachedLogEntries: LogEntryModel? = null
+    //@Volatile
+    @Volatile
+    private var cachedMD5: String? = null
+
     private var currentRow: Int = -1  // 用于记录table2中选中的row
     private val entryCompletionCounters: ConcurrentHashMap<String, AtomicInteger> = ConcurrentHashMap()
-    private val colorManager = ColorManager()
 
     fun addExpectedEntriesForMD5(md5: String, count: Int) {
         entryCompletionCounters.computeIfAbsent(md5) { AtomicInteger(count) }
     }
 
-    @Synchronized
     private fun checkEntryCompletion(md5: String) {
         entryCompletionCounters[md5]?.decrementAndGet()?.let { remaining ->
             if (remaining <= 0) {
-                onAllEntriesAdded(md5)
-                entryCompletionCounters.remove(md5) // 清理不再需要的计数器
+                Thread {
+                    onAllEntriesAdded(md5) // 如果onAllEntriesAdded有耗时操作，也移到后台
+                }.start()
+                entryCompletionCounters.remove(md5)
             }
         }
     }
 
-    private fun checkDiffString(md5: String, logs: LogEntryModel?) {
-        val diffCountMap = mutableMapOf<String, Int>()
-        val entriesToRecolor = mutableListOf<Int>()
-        var hasInteresting = false
-
-        logs?.modifiedEntries?.forEach { entry ->
-            val currentCount = diffCountMap.getOrDefault(entry.diff, 0)
-            diffCountMap[entry.diff] = currentCount + 1
-        }
-
-        logs?.modifiedEntries?.forEachIndexed { index, entry ->
-            val responseCode = entry.status.toInt()
-            val diffCount = diffCountMap[entry.diff] ?: 0
-            if (entry.color[0] == null) {
-                entry.color = colorManager.determineColor(entry.diff, entry.payload.length, responseCode, diffCount)
-            }
-
-            if (entry.color[0] == Color.GREEN) {
-                hasInteresting = true
-                logs.interesting = true
-            } else if (entry.color[0] == Color.LIGHT_GRAY) {
-                entriesToRecolor.add(index)
-            }
-        }
-
-        if (!hasInteresting) {
-            logs?.interesting = false
-        }
-    }
-
-
-    // 完成后检查操作
-    @Synchronized
+    /**
+     *     所有payload执行完毕后后检查操作
+      */
     private fun onAllEntriesAdded(md5: String): Boolean {
         logEntry.setIsChecked(md5, true)
-        val logs = logEntry.getLogs()[md5]
-        checkDiffString(md5, logs)
+        val logs = logEntry.getLogs()[md5] ?: return false
 
-        val allDiffsAreSame = logs?.modifiedEntries?.all { it.diff == "same" }
-        val hasVulnerability = logs?.modifiedEntries?.any { it.vulnerability }
+        ModifiedLoggerResponseHelper.processEntries(logs)
+        val checkInteresting =  ModifiedLoggerResponseHelper.checkInteresting(logs)
 
-        // 修改判断逻辑：检查第一个颜色值是否都是LIGHT_GRAY
-        val allColorAreGray = logs?.modifiedEntries?.let { entries ->
-            entries.isNotEmpty() && entries.all { entry ->
-                entry.color[0] == Color.LIGHT_GRAY
-            }
-        } ?: false
-
-        val hasAnyColor = logs?.modifiedEntries?.any { it.color[0] != null } ?: false
-
-        // 对扫描完成的任务做 有趣 🤔 分析
-        logs?.interesting = when {
-            hasVulnerability == true -> true
-            allDiffsAreSame == true && logs.isChecked -> false
-            allColorAreGray -> false  // 如果所有颜色都是灰色，则不有趣
-            else -> true
-        }
-        // 如果 ''' 导致差异，而闭合 '''' 导致相同， 则单独处理标记
-        val tmp = logs!!.modifiedEntries.find { it.payload == "''''"  }
-        val tmp_ = logs!!.modifiedEntries.find { it.payload == "'''" }
-        if (tmp != null && tmp_ != null) {
-            if (tmp_.diff != "same" && tmp.diff == "same") {
-//                print("【 ${tmp_.payload}  temp_ diff:${tmp_.diff} , tmp_.diff != \"same\" ?   ${tmp_.diff != "same"}    】")
-                tmp.diff = tmp.diff + "?"
-                tmp.color = listOf(Color.RED, Color.BLACK)
-            }
-
-        }
-
-        sortByColor()
-        println("All entries for MD5 $md5 have been added. allColorAreGray=$allColorAreGray, entries=${logs?.modifiedEntries?.size}")
+        println("All entries for MD5 $md5 have been added. is checkInteresting ? =$checkInteresting, entries=${logs.modifiedEntries.size}")
         return true
     }
 
     override fun getRowCount(): Int =
-        currentMD5?.let { logEntry.getEntry(it)?.modifiedEntries?.size } ?: 0
+        this.cachedMD5?.let{ logEntry.getEntry(it)?.modifiedEntries?.size } ?: 0
 
     override fun getColumnCount(): Int = columnNames.size
 
     override fun getColumnName(column: Int): String = columnNames[column]
 
     override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
-        val entry = currentMD5?.let { logEntry.getEntry(it) } ?: return ""
-        if (rowIndex >= entry.modifiedEntries.size) return ""
-        val modifiedEntry = entry.modifiedEntries[rowIndex]
+
+        this.cachedLogEntries = logEntry.getEntry(this.cachedMD5)
+        val entries = this.cachedLogEntries ?:return ""
+        if (rowIndex >= entries.modifiedEntries.size) return ""
+        val modifiedEntry = entries.modifiedEntries[rowIndex]
         return when (columnNames[columnIndex]) {
-            "#" -> rowIndex + 1
+            "#" -> rowIndex
             "parameter" -> modifiedEntry.parameter
             "payload" -> modifiedEntry.payload
             "diff" -> modifiedEntry.diff
             "status" -> modifiedEntry.status
             "time" -> modifiedEntry.time
-            else -> ""
+            else -> " "
         }
     }
 
-
     fun setCurrentEntry(md5: String) {
-        currentMD5 = md5
+        this.cachedMD5 = md5
         fireTableDataChanged()
     }
 
@@ -143,81 +91,45 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
         currentRow = index
     }
 
-
     fun getModifiedEntry(md5: String?, index: Int): ModifiedLogDataModel? {
         if (md5 == null) return null
         val entries = logEntry.getEntry(md5)?.modifiedEntries?.toList()
         return entries?.getOrNull(index)
     }
 
-    @Synchronized
     fun addModifiedEntry(md5: String, modifiedEntry: ModifiedLogDataModel, diffString: String?) {
+        var index = -1
         logEntry.getEntry(md5)?.modifiedEntries?.let { entries ->
             modifiedEntry.diffString = diffString
             entries.add(modifiedEntry)
-            if (md5 == currentMD5) {
-                sortByColor()
-                fireTableDataChanged()
-            }
+            index = entries.size
             checkEntryCompletion(md5)
         }
+        SwingUtilities.invokeLater { fireTableRowsInserted(index, index) }
     }
 
 
-    // 根据颜色进行排序
-    fun sortByColor() {
-        currentMD5?.let { md5 ->
+
+
+
+    /**
+     *  对日志列表进行颜色排序
+     */
+    fun  sortByColor(){
+        this.cachedMD5?.let { md5 ->
             logEntry.getEntry(md5)?.let { entry ->
-                // 首先将条目分成两组：灰色和非灰色
-                val (grayEntries, nonGrayEntries) = entry.modifiedEntries.partition {
-                    it.color[0] == Color.LIGHT_GRAY
-                }
-
-                // 对非灰色条目进行排序，简化次级排序逻辑
-                val sortedNonGray = nonGrayEntries.sortedWith(
-                    compareBy<ModifiedLogDataModel> { modifiedEntry ->
-                        // 第一级排序：按颜色优先级（主要排序）
-                        when (modifiedEntry.color[0]) {
-                            Color.RED -> 0    // SQL注入等高危漏洞最优先
-                            null -> 1         // 未分类结果次之
-                            Color.GREEN -> 2  // 有趣的结果第三
-                            else -> 3         // 其他颜色
-                        }
-                    }.thenBy { modifiedEntry ->
-                        // 第二级排序：按照parameter名称
-                        modifiedEntry.parameter
-                    }.thenBy { modifiedEntry ->
-                        // 第三级排序：简化diff值处理
-                        when {
-                            modifiedEntry.diff == "Error" -> -100000  // Error放最前面
-                            modifiedEntry.diff == "same" -> 100000    // same放最后面
-                            else -> {
-                                val num = modifiedEntry.diff.replace("+", "")
-                                    .replace("-", "")
-                                    .toIntOrNull() ?: 0
-                                -num  // 大的数值排在前面
-                            }
-                        }
-                    }
-                )
-
-                // 将灰色条目直接添加到末尾
-                entry.modifiedEntries.clear()
-                entry.modifiedEntries.addAll(sortedNonGray)
-                entry.modifiedEntries.addAll(grayEntries)
-
-                fireTableDataChanged()
+                ModifiedEntrySortHelper.sortByColor(entry.modifiedEntries)
             }
         }
+        SwingUtilities.invokeLater { fireTableDataChanged() }
     }
 
-
     fun clear() {
-        currentMD5 = null
+        this.cachedMD5 = null
         entryCompletionCounters.clear()
         fireTableDataChanged()
     }
 
-    fun getCurrentMD5(): String? = currentMD5
+    fun getCurrentMD5(): String? = cachedMD5
     fun getCurrentRow(): Int = currentRow
 }

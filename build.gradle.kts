@@ -6,6 +6,7 @@ plugins {
     // Provides the shadowJar task in Gradle
     // https://plugins.gradle.org/plugin/com.github.johnrengelman.shadow
     id("com.github.johnrengelman.shadow") version "8.1.1"
+    kotlin("plugin.serialization") version "2.0.20"
 }
 
 
@@ -47,6 +48,9 @@ dependencies {
     implementation("com.github.milchreis:uibooster:1.21.1")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.0.20")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1") // 兼容 Kotlin 2.0 <button class="citation-flag" data-index="5"><button class="citation-flag" data-index="6">
+
 
 
 //    implementation("com.github.Google.Diff-Match-Patch:diff-match-patch:20121119")

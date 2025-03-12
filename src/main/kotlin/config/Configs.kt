@@ -39,6 +39,7 @@ enum class Configs {
     var payloads: MutableList<String> = mutableListOf<String>(
         "åååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååå",
         "'\"%df",
+        "/1",
         "'''",
         "''''",
         "#{xx}",
@@ -57,7 +58,7 @@ enum class Configs {
 //        "' sleep(3)",
 //        "';WAITFOR DELAY '0:0:5'--" ,
 //        "' AND (SELECT * FROM (SELECT(SLEEP(5)))a)--",
-        "SLEEP(3) /*' or SLEEP(3) or'\" or SLEEP(3) or \""
+      //  "SLEEP(3) /*' or SLEEP(3) or'\" or SLEEP(3) or \""
     )
     val ERROR_SYNTAX: Array<String> = arrayOf(
         // 通用SQL语法错误
@@ -156,9 +157,9 @@ enum class Configs {
         "Microsoft OLE DB Provider for SQL Server",               // SQL Server的OLE DB提供者错误
         "Microsoft\\[ODBC Microsoft Access Driver\$"            // Microsoft Access ODBC驱动程序错误，转义方括号
     )
-    var maxAllowedParameterCount: Int = 30 // max allowed parameters
+    var maxAllowedParameterCount: Int = 50 // max allowed parameters
     var allowedMimeTypeMimeType: MutableList<String> =  mutableListOf<String>("NONE", "HTML", "PLAIN_TEXT", "JSON", "XML", "YAML", "APPLICATION_UNKNOWN", "LEGACY_SER_AMF")
-    var  uninterestingType = mutableListOf("js", "js.map", "css", "css.map", "swf", "zip", "gz", "7zip", "war", "jar", "doc", "docx", "xls", "xlsx", "pdf", "exe", "dll", "png", "jpeg", "jpg", "bmp", "tif", "tiff", "gif", "webp", "svg", "ico", "m3u", "mp4", "m4a", "ogg", "aac", "flac", "mp3", "wav", "avi", "mov", "mpeg", "wmv", "webm", "woff", "woff2", "ttf")
+    var uninterestingType = mutableListOf("js", "js.map", "css", "css.map", "swf", "zip", "gz", "7zip", "war", "jar", "doc", "docx", "xls", "xlsx", "pdf", "exe", "dll", "png", "jpeg", "jpg", "bmp", "tif", "tiff", "gif", "webp", "svg", "ico", "m3u", "mp4", "m4a", "ogg", "aac", "flac", "mp3", "wav", "avi", "mov", "mpeg", "wmv", "webm", "woff", "woff2", "ttf")
     var heuristicWordsError: MutableList<String> = mutableListOf<String>(
         "无法解析请求参数",
         "无效的请求",
@@ -166,11 +167,16 @@ enum class Configs {
         "\"code\":400",
         "系统异常，请稍后再试！",
         "网页访问错误",
-        "33333"
     )
-    var boringWordsError: MutableList<String> = mutableListOf<String>(
+    var boringWords:MutableList<String> = mutableListOf(
         "Failed to convert value of type ['\"]([^'\"]+)['\"]",
-        "\"error\": \"Bad Request\""
+        "\"error\": \"Bad Request\"",
+        "Invalid input JSON",
+        "\"code\":400",
+        "无法解析请求参数",
+        "无效的请求",
+
+
     )
 
 }

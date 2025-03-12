@@ -3,7 +3,7 @@ package ui.components
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.ui.editor.EditorOptions
 import config.DataPersistence
-import controller.HttpInterceptor
+import processor.HttpInterceptor
 import model.logentry.LogEntry
 import model.logentry.ModifiedLogEntry
 import java.awt.Color
@@ -42,9 +42,9 @@ class LogViewPanel(
         // 主日志表格
         val logTable = object : JTable(logs) {
             override fun changeSelection(rowIndex: Int, columnIndex: Int, toggle: Boolean, extend: Boolean) {
-
                 currentMD5 = logs.getEntryMD5ByIndex(rowIndex).toString()
                 modifiedLog.setCurrentEntry(currentMD5!!)
+                modifiedLog.sortByColor()
                 responseView.setSearchExpression("")
                 if (currentMD5 != null) {
                     val requestResponse = logs.getEntry(currentMD5!!)?.requestResponse

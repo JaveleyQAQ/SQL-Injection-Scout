@@ -34,7 +34,8 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
         "HeuristicWords" to "Keywords used to identify potential Boring in responses",
         "SQL Payloads:" to "SQL injection payloads to test against parameters",
         "Never Scan Extensions:" to "File extensions that will be skipped during scanning",
-        "Scan MIME Types:" to "MIME types that will be included in scanning"
+        "Scan MIME Types:" to "MIME types that will be included in scanning",
+        "Boring Words:" to "Boring words that will be excluded in scan"
     )
 
     /**
@@ -243,35 +244,6 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
                 })
             },
 
-//            "HeuristicWords" to JScrollPane(JTextArea().apply {
-//                rows = 10
-//                columns = 30
-//                lineWrap = true
-//                wrapStyleWord = true
-//                font = FONT_OPTIONS
-//                text = configs.heuristicWordsError.joinToString("\n")
-//                border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
-//
-//                // 添加文档监听器
-//                document.addDocumentListener(object : javax.swing.event.DocumentListener {
-//                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-//                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-//                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-//
-//                    private fun updateConfig() {
-//                        val text = text.trim()
-//                        if (text.isNotEmpty()) {
-//                            // 分割并过滤掉空白行
-//                            configs.heuristicWordsError.clear()
-//                            configs.heuristicWordsError.addAll(text.lines())
-//                            dataPersistence.updateConfig()
-//                        }
-//                    }
-//                })
-//            })
-//            ,
-//
-//
             "SQL Payloads:" to JScrollPane(JTextArea().apply {
                 rows = 10
                 columns = 30
@@ -303,6 +275,35 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
                 minimumSize = preferredSize
                 maximumSize = preferredSize
             },
+
+            "Boring Words" to JScrollPane(JTextArea().apply {
+                rows = 10
+                columns = 30
+                lineWrap = true
+                wrapStyleWord = true
+                font = FONT_OPTIONS
+                text = configs.boringWords.joinToString("\n")
+                border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
+                // 添加文档监听器
+                document.addDocumentListener(object : javax.swing.event.DocumentListener {
+                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+
+                    private fun updateConfig() {
+                        configs.boringWords.clear()
+                        val text = text.trim()
+                        if (text.isNotEmpty()) {
+                            // 分割并过滤掉空白行
+                            val new = text.lines().filter { it.isNotBlank() }
+                            configs.boringWords.clear()
+                            configs.boringWords.addAll(new)
+                            dataPersistence.updateConfig()
+                        }
+                    }
+                })
+            }),
+
             "Never Scan Extensions:" to JScrollPane(JTextArea().apply {
                 rows = 10
                 columns = 30
@@ -521,7 +522,7 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
 /**
  *
  */
-//fun main() {
+//fun utils.main() {
 //    SwingUtilities.invokeLater {
 //        val frame = JFrame("SQL Scout Settings")
 //        frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE

@@ -3,6 +3,8 @@ package model.logentry
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.http.message.HttpRequestResponse
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
+import javax.swing.SwingUtilities
 import javax.swing.table.AbstractTableModel
 
 /*
@@ -15,6 +17,9 @@ import javax.swing.table.AbstractTableModel
 
 class LogEntry(val api: MontoyaApi) : AbstractTableModel() {
     private val logs: ConcurrentHashMap<String, LogEntryModel> = ConcurrentHashMap()
+    private val idToMD5 = ConcurrentHashMap<Int, String>()
+    private val idToEntry = ConcurrentHashMap<Int, LogEntryModel>()
+    private val nextId = AtomicInteger(0)
     private val columnNames =
         listOf("#", "Method", "Host", "Path", "Status", "Body Len", "MIME Type", "Flag")
 
@@ -29,42 +34,49 @@ class LogEntry(val api: MontoyaApi) : AbstractTableModel() {
 
     @Synchronized
     fun add(parametersMD5: String, requestResponse: HttpRequestResponse): Int {
+        if (logs.containsKey(parametersMD5)) return -1
 
-        //检测是否重复
-        if (!logs.containsKey(parametersMD5)) {
-            val index = logs.size
-            logs[parametersMD5] = LogEntryModel(
-                id = index,
-                requestResponse = requestResponse,
-                parametersMD5 = parametersMD5,
-                isChecked = false
-            )
-            fireTableRowsInserted(index, index)
-            return index
-        }
-        return -1
+        val newId = nextId.getAndIncrement() // 安全生成唯一 id
+        val entry = LogEntryModel(
+            id = newId,
+            requestResponse = requestResponse,
+            parametersMD5 = parametersMD5,
+            isChecked = false
+        )
+        logs[parametersMD5] = entry
+        idToEntry[newId] = entry // 同步更新 idToEntry
+        idToMD5[newId] = parametersMD5
+
+        SwingUtilities.invokeLater { fireTableRowsInserted(newId, newId) }
+        return newId
     }
+
 
     /**
      * 对超出参数个数范围的请求进行单独标记
      */
     @Synchronized
     fun markRequestWithExcessiveParameters(requestHash: String, requestResponse: HttpRequestResponse) {
-        // 检测是否重复
-        if (!logs.containsKey(requestHash)) {
-            val logEntryIndex = logs.size
-            logs[requestHash] = LogEntryModel(
-                id = logEntryIndex,
-                requestResponse = requestResponse,
-                parametersMD5 = requestHash,
-                isChecked = false,
-                comments = "Excessive Parameters"
-            )
-            fireTableRowsInserted(logEntryIndex, logEntryIndex)
-        }
+        if (logs.containsKey(requestHash)) return
+
+        val newId = nextId.getAndIncrement()
+        val entry = LogEntryModel(
+            id = newId,
+            requestResponse = requestResponse,
+            parametersMD5 = requestHash,
+            isChecked = false,
+            comments = "Excessive Parameters"
+        )
+        logs[requestHash] = entry
+        idToEntry[newId] = entry
+        idToMD5[newId] = requestHash
+
+
+        SwingUtilities.invokeLater { fireTableRowsInserted(newId, newId) }
     }
 
-    fun getEntry(parametersMD5: String): LogEntryModel? = logs[parametersMD5]
+    @Synchronized
+    fun getEntry(parametersMD5: String?): LogEntryModel? = logs[parametersMD5]
 
     @Synchronized
     fun setVulnerability(parametersMD5: String, hasVulnerability: Boolean) {
@@ -77,12 +89,16 @@ class LogEntry(val api: MontoyaApi) : AbstractTableModel() {
     fun setIsChecked(parametersMD5: String, isChecked: Boolean) {
         logs[parametersMD5]?.let { entry ->
             entry.isChecked = isChecked
-            fireTableRowsDeleted(entry.id, columnNames.indexOf("Flag"))
+            val columnIndex = columnNames.indexOf("Flag")
+            SwingUtilities.invokeLater {
+                fireTableCellUpdated(entry.id, columnIndex)
+            }
         }
     }
 
+    @Synchronized
     override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
-        val entry = logs.values.find { it.id == rowIndex } ?: return ""
+        val entry = idToEntry[rowIndex] ?: return ""
         return when (columnNames[columnIndex]) {
             "#" -> entry.id
             "Method" -> entry.method
@@ -114,10 +130,10 @@ class LogEntry(val api: MontoyaApi) : AbstractTableModel() {
 
     fun clear() {
         logs.clear()
+        idToMD5.clear()
+        idToEntry.clear()
+        nextId.set(0)
         fireTableDataChanged()
     }
-
-    fun getEntryMD5ByIndex(index: Int): String? {
-        return logs.entries.find { it.value.id == index }?.key
-    }
+    fun getEntryMD5ByIndex(index: Int): String? = idToMD5[index]
 }

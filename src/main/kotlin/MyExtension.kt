@@ -1,18 +1,12 @@
 import burp.api.montoya.BurpExtension
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.extension.ExtensionUnloadingHandler
-import burp.api.montoya.http.message.requests.HttpRequest
-import burp.api.montoya.persistence.PersistedObject
-import burp.api.montoya.persistence.Persistence
-import burp.api.montoya.scanner.AuditConfiguration
-import burp.api.montoya.scanner.BuiltInAuditConfiguration
 import config.Configs
 import config.DataPersistence
-import controller.HttpInterceptor
+import processor.HttpInterceptor
 import model.logentry.LogEntry
 import model.logentry.ModifiedLogEntry
 import ui.components.LogViewPanel
-import javax.swing.SwingUtilities
 
 //import ui.components.MyHttpRequestEditorProvider
 

@@ -187,7 +187,7 @@ class ui.windows.TextEditorDemo : JFrame() {
 
     companion object {
         @JvmStatic
-        fun main(args: Array<String>) {
+        fun utils.main(args: Array<String>) {
             // Start all Swing applications on the EDT.
             SwingUtilities.invokeLater {
                 ui.windows.TextEditorDemo().isVisible = true
@@ -235,7 +235,7 @@ class ui.windows.TextEditorDemo : JFrame() {
 
     companion object {
         @JvmStatic
-        fun main(args: Array<String>) {
+        fun utils.main(args: Array<String>) {
             // Start all Swing applications on the EDT.
             SwingUtilities.invokeLater {
                 ui.windows.TextEditorDemo().isVisible = true

@@ -1,13 +1,13 @@
-package config
+package processor.helper.color
 
 import java.awt.Color
 
-class ColorManager {
+object ColorManager {
 
     fun determineColor(diff: String, payloadLength: Int, responseCode: Int, diffCount: Int): List<Color?> {
         return when {
             diff == "Error" -> listOf(Color.RED, Color.BLACK)  // 添加对Error响应的处理
-            diff == "same" -> listOf(Color.LIGHT_GRAY, Color.BLACK)
+            diff == "same" ->  listOf(Color.LIGHT_GRAY, Color.BLACK)
             responseCode.toInt() == 0 -> listOf(Color.LIGHT_GRAY, Color.BLACK)
             responseCode in 400..404 -> listOf(Color.LIGHT_GRAY, Color.BLACK)
             responseCode in 501..505 -> listOf(Color.LIGHT_GRAY, Color.BLACK)
