@@ -1,6 +1,5 @@
 package config
 
-import burp.api.montoya.project.Project
 import java.util.Properties
 
 enum class Configs {

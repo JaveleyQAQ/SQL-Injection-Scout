@@ -1,14 +1,9 @@
-import burp.api.montoya.utilities.Utilities
 import com.github.difflib.DiffUtils
 import com.github.difflib.patch.Patch
-import config.Configs
-import org.yaml.snakeyaml.Yaml
 import java.awt.*
 import java.io.File
-import java.io.InputStream
 import java.nio.file.Files
 import javax.swing.*
-import javax.swing.table.TableModel
 
 
 //import
