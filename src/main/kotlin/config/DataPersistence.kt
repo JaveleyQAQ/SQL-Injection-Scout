@@ -64,6 +64,12 @@ class DataPersistence(val api: MontoyaApi) {
                 config.allowedMimeTypeMimeType.add(i)
             }
         }
+        persistenceData.getStringList("hiddenParams")?.let {
+            config.hiddenParams.clear()
+            for (i in it){
+                config.hiddenParams.add(i)
+            }
+        }
     }
 
     private fun setData() {
@@ -87,6 +93,11 @@ class DataPersistence(val api: MontoyaApi) {
         payloadsList.addAll(config.payloads)
         persistenceData.setStringList("payloads", payloadsList)
 
+        //         保存hiddenparams
+        val hiddenParams = PersistedList<String>.persistedStringList()
+        hiddenParams.clear()
+        hiddenParams.addAll(config.hiddenParams)
+        persistenceData.setStringList("hiddenParams", hiddenParams)
 
 
 //         保存 boringWords
@@ -106,7 +117,6 @@ class DataPersistence(val api: MontoyaApi) {
         mimeTypeList.clear()
         mimeTypeList.addAll(config.allowedMimeTypeMimeType)
         persistenceData.setStringList("allowedMimeTypeMimeType", mimeTypeList)
-
 
     }
 

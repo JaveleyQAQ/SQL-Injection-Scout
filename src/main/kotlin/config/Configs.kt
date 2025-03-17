@@ -60,6 +60,12 @@ enum class Configs {
 //        "' AND (SELECT * FROM (SELECT(SLEEP(5)))a)--",
       //  "SLEEP(3) /*' or SLEEP(3) or'\" or SLEEP(3) or \""
     )
+
+    var hiddenParams: MutableList<String> = mutableListOf(
+        "data",
+        "size"
+    )
+
     val ERROR_SYNTAX: Array<String> = arrayOf(
         // 通用SQL语法错误
         "You have an error in your SQL syntax",                    // MySQL通用语法错误信息
@@ -170,6 +176,7 @@ enum class Configs {
     )
     var boringWords:MutableList<String> = mutableListOf(
         "Failed to convert value of type ['\"]([^'\"]+)['\"]",
+        "JSON parse error: Cannot deserialize",
         "\"error\": \"Bad Request\"",
         "Invalid input JSON",
         "\"code\":400",
@@ -180,5 +187,11 @@ enum class Configs {
     )
 
 }
+
+
+
+
+
+
 
 

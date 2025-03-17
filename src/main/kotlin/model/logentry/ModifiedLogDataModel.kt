@@ -2,6 +2,7 @@ package model.logentry
 
 import burp.api.montoya.http.message.HttpRequestResponse
 import java.awt.Color
+import javax.swing.table.TableModel
 
 data class ModifiedLogDataModel(
 

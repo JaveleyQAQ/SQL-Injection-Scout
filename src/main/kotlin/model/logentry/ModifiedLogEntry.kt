@@ -1,5 +1,6 @@
 package model.logentry
 
+import ModifiedLogTable
 import processor.helper.color.ModifiedEntrySortHelper
 import processor.helper.color.ModifiedLoggerResponseHelper
 
@@ -34,12 +35,13 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
     }
 
     private fun checkEntryCompletion(md5: String) {
-        entryCompletionCounters[md5]?.decrementAndGet()?.let { remaining ->
-            if (remaining <= 0) {
-                Thread {
-                    onAllEntriesAdded(md5) // 如果onAllEntriesAdded有耗时操作，也移到后台
-                }.start()
-                entryCompletionCounters.remove(md5)
+        entryCompletionCounters[md5]?.let { counter ->
+            synchronized(counter) {
+                val remaining = counter.decrementAndGet()
+                if (remaining <= 0) {
+                    Thread { onAllEntriesAdded(md5) }.start()
+                    entryCompletionCounters.remove(md5)
+                }
             }
         }
     }
@@ -58,33 +60,40 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
         return true
     }
 
-    override fun getRowCount(): Int =
-        this.cachedMD5?.let{ logEntry.getEntry(it)?.modifiedEntries?.size } ?: 0
-
+    override fun getRowCount(): Int {
+        return cachedMD5?.let { md5 ->
+            logEntry.getEntry(md5)?.modifiedEntries?.size ?: 0
+        } ?: 0
+    }
     override fun getColumnCount(): Int = columnNames.size
 
     override fun getColumnName(column: Int): String = columnNames[column]
 
     override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
+        val md5 = cachedMD5 ?: return ""
+        val entry = logEntry.getEntry(md5) ?: return ""
+        val entries = entry.modifiedEntries
 
-        this.cachedLogEntries = logEntry.getEntry(this.cachedMD5)
-        val entries = this.cachedLogEntries ?:return ""
-        if (rowIndex >= entries.modifiedEntries.size) return ""
-        val modifiedEntry = entries.modifiedEntries[rowIndex]
-        return when (columnNames[columnIndex]) {
-            "#" -> rowIndex
-            "parameter" -> modifiedEntry.parameter
-            "payload" -> modifiedEntry.payload
-            "diff" -> modifiedEntry.diff
-            "status" -> modifiedEntry.status
-            "time" -> modifiedEntry.time
-            else -> " "
+        return synchronized(entries) { // 确保线程安全
+            if (rowIndex < 0 || rowIndex >= rowCount) return ""
+            val modifiedEntry = entries[rowIndex]
+            when (columnNames[columnIndex]) {
+                "#" -> rowIndex  // 0 开始
+                "parameter" -> modifiedEntry.parameter
+                "payload" -> modifiedEntry.payload
+                "diff" -> modifiedEntry.diff
+                "status" -> modifiedEntry.status
+                "time" -> modifiedEntry.time
+                else -> ""
+            }
         }
     }
 
     fun setCurrentEntry(md5: String) {
-        this.cachedMD5 = md5
-        fireTableDataChanged()
+        if (cachedMD5 != md5) {
+            cachedMD5 = md5
+            fireTableDataChanged()
+        }
     }
 
     fun setCurrentRowIndex(index: Int) {
@@ -97,21 +106,25 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
         return entries?.getOrNull(index)
     }
 
+
     fun addModifiedEntry(md5: String, modifiedEntry: ModifiedLogDataModel, diffString: String?) {
-        var index = -1
         logEntry.getEntry(md5)?.modifiedEntries?.let { entries ->
             modifiedEntry.diffString = diffString
-            entries.add(modifiedEntry)
-            index = entries.size
+
+            synchronized(entries) {
+                entries.add(modifiedEntry)
+                val newIndex = entries.size - 1
+
+                // 双重验证：确保索引在模型范围内
+                if (newIndex >= 0 && newIndex < rowCount) {
+                    SwingUtilities.invokeLater {
+                        fireTableRowsInserted(newIndex, newIndex)
+                    }
+                }
+            }
             checkEntryCompletion(md5)
         }
-        SwingUtilities.invokeLater { fireTableRowsInserted(index, index) }
     }
-
-
-
-
-
     /**
      *  对日志列表进行颜色排序
      */

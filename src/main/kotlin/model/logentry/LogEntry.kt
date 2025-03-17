@@ -111,9 +111,9 @@ class LogEntry(val api: MontoyaApi) : AbstractTableModel() {
             "Flag" -> when {
                 entry.hasVulnerability && entry.isChecked -> "\uD83D\uDD25"
                 entry.hasVulnerability -> "\uD83D\uDD25"
-                entry.interesting -> "Interesting"
-                entry.isChecked -> "Boring"
-                entry.comments.equals("Excessive Parameters") -> "ExcessParams"
+                entry.interesting -> "✓"
+                entry.isChecked -> "✗"
+                entry.comments.equals("Excessive Parameters") -> "Max param"
                 else -> "Scanning"
             }
 

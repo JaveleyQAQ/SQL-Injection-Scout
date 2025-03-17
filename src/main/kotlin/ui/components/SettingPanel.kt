@@ -480,15 +480,37 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
         
         // 设置边框和标题
         previewPanel.border = BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder("Potential params found:"),
+            BorderFactory.createTitledBorder("Fuzz Params List:"),
             BorderFactory.createEmptyBorder(5, 5, 5, 5)
         )
         
         // 创建预览文本区域
         val previewArea = JTextArea().apply {
-            lineWrap = true          // 启用自动换行
-            wrapStyleWord = true     // 按单词换行
-            font = Font(FONT_FAMILY, Font.PLAIN, 14)
+                rows = 10
+                columns = 30
+                lineWrap = true
+                wrapStyleWord = true
+                font = FONT_OPTIONS
+                text = configs.hiddenParams.joinToString("\n")
+                border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
+                // 添加文档监听器
+                document.addDocumentListener(object : javax.swing.event.DocumentListener {
+                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+
+                    private fun updateConfig() {
+                        configs.hiddenParams.clear()
+                        val text = text.trim()
+                        if (text.isNotEmpty()) {
+                            // 分割并过滤掉空白行
+                            val new = text.lines().filter { it.isNotBlank() }
+                            configs.hiddenParams.clear()
+                            configs.hiddenParams.addAll(new)
+                            dataPersistence.updateConfig()
+                        }
+                    }
+                })
         }
         
         // 创建滚动面板

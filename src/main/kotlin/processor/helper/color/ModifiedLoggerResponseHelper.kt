@@ -13,7 +13,7 @@ import java.awt.Color
  */
 
 
-object ModifiedLoggerResponseHelper {
+object  ModifiedLoggerResponseHelper {
 
     fun processEntries(logs: LogEntryModel) {
 
@@ -49,19 +49,19 @@ object ModifiedLoggerResponseHelper {
                 }
             }
             // 检查是否有 payload 为 "'''" 或 "''''"
-            val hasTarget2 = group.any { it.payload in listOf("#xx}", "#{xx}") }
-            if (hasTarget2) {
-                val single = group.find { it.payload == "#xx}" }
-                val double = group.find { it.payload == "#{xx}" }
-                if (single?.diff != "same" && double?.diff == "same") {
-                    val res1 = single?.httpRequestResponse?.response()
-                    val res2 = double.httpRequestResponse.response()
-                    if (res1 != res2) {
-                        single?.updateColor(Color.YELLOW)
-                        double.updateColor(Color.YELLOW)
-                    }
-                }
-            }
+//            val hasTarget2 = group.any { it.payload in listOf("#xx}", "#{xx}") }
+//            if (hasTarget2) {
+//                val single = group.find { it.payload == "#xx}" }
+//                val double = group.find { it.payload == "#{xx}" }
+//                if (single?.diff != "same" && double?.diff == "same") {
+//                    val res1 = single?.httpRequestResponse?.response()
+//                    val res2 = double.httpRequestResponse.response()
+//                    if (res1 != res2) {
+//                        single?.updateColor(Color.YELLOW)
+//                        double.updateColor(Color.YELLOW)
+//                    }
+//                }
+//            }
 
         }
     }
