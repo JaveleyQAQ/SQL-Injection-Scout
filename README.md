@@ -4,8 +4,7 @@ SQL Injection Scout 是一个用于 Burp Suite 的扩展，专为帮助安全研
 
 ---
 
-## 💯 功能特性 
-> 👏欢迎提需求
+## 💯 功能特性
 
 - **被动检测SQL**：支持对 `GET/POST` 请求的参数进行 `FUZZ` 测试，支持 `XML`、`JSON`、`FORM`表单数据格式。
 - **最小化探测**：通过最小化的 `payload` 探测，减少对目标的影响。
@@ -20,15 +19,16 @@ SQL Injection Scout 是一个用于 Burp Suite 的扩展，专为帮助安全研
 - **内置范围**：支持内置的 `scope` 范围设置。
 - **延时扫描**：支持固定抖动+随机抖动发包检测，更精准规避 `WAF`。
 - **自定义扫描参数数量**：防止参数过多导致的性能问题或误报，默认`30`
+- 🔥 **`Fuzz`隐藏参数`SQL`注入**: 支持用户插入隐藏参数列表，进行`FUZZ`测试
 
 ## ✅️ 安装
 
 1. 确保已安装 [Burp Suite](https://portswigger.net/burp)。
-2. ~~下载或克隆此项目到本地：~~
+2. 下载或克隆此项目到本地:
    ```bash
-   git  暂时不发 😁
+   git clone  https://github.com/JaveleyQAQ/SQL-Injection-Scout.git
    ```
-3. ~~使用 Gradle 构建项目：~~
+3. 使用 Gradle 构建项目：
    ```bash
    cd SQL-Injection-Scout
    ./gradlew build
@@ -56,7 +56,6 @@ SQL Injection Scout 是一个用于 Burp Suite 的扩展，专为帮助安全研
 - **颜色自定义**：允许用户自定义响应的颜色标记。
 - **二次确认注入**：提供二次确认存在注入的条目。
 - **性能优化**：进一步优化扫描性能，减少资源消耗。
-
 
 ---
 
