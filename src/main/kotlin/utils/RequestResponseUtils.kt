@@ -1,6 +1,5 @@
 package utils
 
-import burp.api.montoya.MontoyaApi
 import burp.api.montoya.core.Marker
 import burp.api.montoya.core.ToolType
 import burp.api.montoya.http.handler.HttpResponseReceived
