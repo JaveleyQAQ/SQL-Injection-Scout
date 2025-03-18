@@ -1,5 +1,6 @@
 package utils
 
+import burp.api.montoya.MontoyaApi
 import burp.api.montoya.core.Marker
 import burp.api.montoya.core.ToolType
 import burp.api.montoya.http.handler.HttpResponseReceived
@@ -8,6 +9,7 @@ import burp.api.montoya.http.message.params.HttpParameterType
 import burp.api.montoya.http.message.params.ParsedHttpParameter
 import burp.api.montoya.http.message.requests.HttpRequest
 import burp.api.montoya.http.message.responses.HttpResponse
+import burp.api.montoya.logging.Logging
 import com.nickcoblentz.montoya.withUpdatedContentLength
 import config.Configs
 import model.logentry.LogEntry
@@ -15,6 +17,7 @@ import model.logentry.ModifiedLogDataModel
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.util.regex.Pattern
+import kotlin.collections.map
 
 class RequestResponseUtils {
     private val configs = Configs.INSTANCE
@@ -75,14 +78,27 @@ class RequestResponseUtils {
      *  @param 2. responseTYpe值得扫描
      *  @param 3. 参数个数不超出范围
      */
-    fun isRequestAllowed(httpResponseReceived: HttpResponseReceived): Boolean {
+    fun isRequestAllowed(logs: LogEntry, output: Logging, tmpParametersMD5: String, httpResponseReceived: HttpResponseReceived): Boolean {
 
         val originalRequest = httpResponseReceived.initiatingRequest()
-        if (originalRequest.method().equals("OPTIONS")) return false
-
-        if (!isAllowedRequestFileExtension(originalRequest) && !isAllowedRegexURLs(originalRequest.path())) {
+        //1. Skip OPTIONS
+        if (originalRequest.method().equals("OPTIONS", ignoreCase = true)) {
             return false
         }
+        // 2. 检查 URL 正则匹配和文件扩展名
+        val originalRequestResponse = HttpRequestResponse.httpRequestResponse(originalRequest, httpResponseReceived)
+        if (isAllowedRequestFileExtension(originalRequest) && skipRegexURL(originalRequest.path())) {
+            logs.markRequestWithSkipRegexURL(tmpParametersMD5, originalRequestResponse)
+            output.logToError("${originalRequest.path()} 正则匹配跳过扫描！")
+            return false
+        }
+        if (getAllowedParamsCounts(originalRequest) > configs.maxAllowedParameterCount) {
+            logs.markRequestWithExcessiveParameters(tmpParametersMD5, originalRequestResponse)
+            output.logToError("${originalRequestResponse.request().path()} 请求参数超出允许最大参数数量！")
+            return false
+        }
+
+        // 3. 检查 响应 状态码 配置选项
         if (isAllowedResponseType(httpResponseReceived)
             //           && isAllowedParamsCounts(originalRequest)
             && isAllowedResponseStatus(httpResponseReceived)
@@ -90,19 +106,20 @@ class RequestResponseUtils {
         ) {
             // 判断请求中不仅仅是包含Cookie
             val hasAnyParams = originalRequest.hasParameters()
-            val onlyCookies = !originalRequest.hasParameters(HttpParameterType.URL) &&
-                    !originalRequest.hasParameters(HttpParameterType.BODY) &&
-                    !originalRequest.hasParameters(HttpParameterType.JSON) &&
-                    !originalRequest.hasParameters(HttpParameterType.XML_ATTRIBUTE) &&
-                    !originalRequest.hasParameters(HttpParameterType.XML) &&
-                    !originalRequest.hasParameters(HttpParameterType.MULTIPART_ATTRIBUTE)
+            val hasNonCookieParams = originalRequest.parameters().any { it.type() != HttpParameterType.COOKIE }
+//            val onlyCookies = !originalRequest.hasParameters(HttpParameterType.URL) &&
+//                    !originalRequest.hasParameters(HttpParameterType.BODY) &&
+//                    !originalRequest.hasParameters(HttpParameterType.JSON) &&
+//                    !originalRequest.hasParameters(HttpParameterType.XML_ATTRIBUTE) &&
+//                    !originalRequest.hasParameters(HttpParameterType.XML) &&
+//                    !originalRequest.hasParameters(HttpParameterType.MULTIPART_ATTRIBUTE)
 
-            return hasAnyParams && !onlyCookies
+            return hasAnyParams && hasNonCookieParams
         }
         return false
     }
 
-    private fun isAllowedRegexURLs(url: String): Boolean {
+    fun skipRegexURL(url: String): Boolean {
         return Regex(configs.neverScanRegex, RegexOption.IGNORE_CASE).containsMatchIn(url)
     }
 
@@ -110,8 +127,8 @@ class RequestResponseUtils {
         return !configs.allowedMimeTypeMimeType.none { it == response.mimeType().toString() }
     }
 
-    private fun isAllowedRequestFileExtension(request: HttpRequest): Boolean {
-        return configs.uninterestingType.none { request.fileExtension().equals(it) }
+    fun isAllowedRequestFileExtension(request: HttpRequest): Boolean {
+        return configs.uninterestingType.none { request.fileExtension().equals(it, ignoreCase = true) }
     }
 
     private fun isAllowedResponseStatus(response: HttpResponse): Boolean {

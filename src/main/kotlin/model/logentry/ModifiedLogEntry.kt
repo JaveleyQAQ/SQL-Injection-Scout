@@ -51,7 +51,7 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
       */
     private fun onAllEntriesAdded(md5: String): Boolean {
         logEntry.setIsChecked(md5, true)
-        val logs = logEntry.getLogs()[md5] ?: return false
+        val logs = logEntry.getEntry(md5) ?: return false
 
         ModifiedLoggerResponseHelper.processEntries(logs)
         val checkInteresting =  ModifiedLoggerResponseHelper.checkInteresting(logs)

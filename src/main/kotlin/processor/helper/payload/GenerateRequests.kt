@@ -1,6 +1,5 @@
-package processor
+package processor.helper.payload
 
-import burp.api.montoya.MontoyaApi
 import burp.api.montoya.http.message.ContentType
 import burp.api.montoya.http.message.params.HttpParameter
 import burp.api.montoya.http.message.params.HttpParameterType
@@ -11,29 +10,27 @@ import com.nickcoblentz.montoya.withUpdatedContentLength
 import com.nickcoblentz.montoya.withUpdatedParsedParameterValue
 import config.Configs
 import utils.RequestResponseUtils
-import java.util.*
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.HashMap
 
 object GenerateRequests {
-    private var parsedHttpParameter: ParsedHttpParameter? = null
     private val hiddenParams  = Configs.INSTANCE.hiddenParams
     private val configs = Configs.INSTANCE
     private val requestResponseUtils = RequestResponseUtils()
     private val uniqScannedParameters: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
-    private var requestPayloadMap: MutableMap<HttpRequest?, Pair<String, String>> = ConcurrentHashMap() // 记录请求的参数和payload
+    private var requestPayloadMap: MutableMap<HttpRequest?, Pair<String, String>> =
+        ConcurrentHashMap() // 记录请求的参数和payload
 
     fun processRequests(httpRequest: HttpRequest): List<HttpRequest> {
         val newRequest =  addHiddenParamsToHttpRequest(httpRequest)
         return generateRequestByPayload(newRequest,newRequest.parameters(), configs.payloads)
-
     }
 
 
 
 
 
-    private fun addHiddenParamsToHttpRequest(httpRequest: HttpRequest):HttpRequest{
+    private fun addHiddenParamsToHttpRequest(httpRequest: HttpRequest): HttpRequest {
         val hiddenHttpParameters:MutableList<HttpParameter> = mutableListOf()
         var paramsType: HttpParameterType? = null
         paramsType = when(httpRequest.contentType()){

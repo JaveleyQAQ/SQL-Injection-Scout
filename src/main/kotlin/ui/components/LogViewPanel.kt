@@ -1,6 +1,5 @@
 package ui.components
 
-import LogEntryTable
 import ModifiedLogTable
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.ui.editor.EditorOptions
@@ -8,17 +7,15 @@ import config.DataPersistence
 import processor.HttpInterceptor
 import model.logentry.LogEntry
 import model.logentry.ModifiedLogEntry
-import processor.GenerateRequests
+import processor.helper.payload.GenerateRequests
 import java.awt.Color
 import java.awt.Component
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.*
-import javax.swing.table.DefaultTableCellRenderer
-import javax.swing.table.TableRowSorter
 
 class LogViewPanel(
-    private val api: MontoyaApi,
+    val api: MontoyaApi,
     private val logs: LogEntry,
     private val modifiedLog: ModifiedLogEntry,
     private val httpInterceptor: HttpInterceptor,
@@ -37,8 +34,8 @@ class LogViewPanel(
         requestResponseTabs.leftComponent = requestView.uiComponent()
         requestResponseTabs.rightComponent = responseView.uiComponent()
         logViewSplitPanel.rightComponent = requestResponseTabs //日志展示在底部
+        val modifiedLogTable = ModifiedLogTable(modifiedLog, requestView, responseView)
 
-        val modifiedLogTable = ModifiedLogTable(modifiedLog,requestView, responseView)
 
         // 创建右键菜单
         val popupMenu = JPopupMenu()
@@ -50,12 +47,12 @@ class LogViewPanel(
             init {
                 autoCreateRowSorter = true
             }
+
             override fun changeSelection(rowIndex: Int, columnIndex: Int, toggle: Boolean, extend: Boolean) {
                 val modelRow = convertRowIndexToModel(rowIndex)
                 currentMD5 = logs.getEntryMD5ByIndex(modelRow).toString()
-
-                // 先重置排序  再更新数据 每次点击原始请求后重置排序
-//                modifiedLog.sortByColor()
+                // 先重置排序,再更新数据 每次点击原始请求后重置排序
+                modifiedLog.sortByColor()
                 modifiedLogTable.resetSorter()
                 modifiedLog.setCurrentEntry(currentMD5!!)
                 responseView.setSearchExpression("")
@@ -65,9 +62,10 @@ class LogViewPanel(
                         requestView.request = requestResponse.request()
                         responseView.response = requestResponse.response()
                     }
-                }
 
-                super.changeSelection(rowIndex, columnIndex, toggle, extend)
+
+                    super.changeSelection(rowIndex, columnIndex, toggle, extend)
+                }
             }
         }
 

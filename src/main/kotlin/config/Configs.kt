@@ -61,8 +61,6 @@ enum class Configs {
     )
 
     var hiddenParams: MutableList<String> = mutableListOf(
-        "data",
-        "size"
     )
 
     val ERROR_SYNTAX: Array<String> = arrayOf(
@@ -165,7 +163,7 @@ enum class Configs {
     var maxAllowedParameterCount: Int = 50 // max allowed parameters
     var allowedMimeTypeMimeType: MutableList<String> =  mutableListOf<String>("NONE", "HTML", "PLAIN_TEXT", "JSON", "XML", "YAML", "APPLICATION_UNKNOWN", "LEGACY_SER_AMF")
     var uninterestingType = mutableListOf("js", "js.map", "css", "css.map", "swf", "zip", "gz", "7zip", "war", "jar", "doc", "docx", "xls", "xlsx", "pdf", "exe", "dll", "png", "jpeg", "jpg", "bmp", "tif", "tiff", "gif", "webp", "svg", "ico", "m3u", "mp4", "m4a", "ogg", "aac", "flac", "mp3", "wav", "avi", "mov", "mpeg", "wmv", "webm", "woff", "woff2", "ttf")
-    var heuristicWordsError: MutableList<String> = mutableListOf<String>(
+    var heuristicWordsError: MutableList<String> = mutableListOf(
         "无法解析请求参数",
         "无效的请求",
         "\"code\":999",
@@ -174,6 +172,7 @@ enum class Configs {
         "网页访问错误",
     )
     var boringWords:MutableList<String> = mutableListOf(
+        "HTTP Status 400 – Bad Request",
         "Failed to convert value of type ['\"]([^'\"]+)['\"]",
         "JSON parse error: Cannot deserialize",
         "\"error\": \"Bad Request\"",

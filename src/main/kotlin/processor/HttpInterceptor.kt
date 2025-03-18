@@ -26,6 +26,7 @@ import javax.swing.SwingUtilities
 import com.nickcoblentz.montoya.sendRequestWithUpdatedContentLength
 import com.nickcoblentz.montoya.withUpdatedContentLength
 import model.logentry.ModifiedLogDataModel
+import processor.helper.payload.GenerateRequests
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
@@ -64,30 +65,19 @@ class HttpInterceptor(
 
 
     fun processHttpHandler(responseReceived: HttpResponseReceived) {
-
-
-        if (!requestResponseUtils.isRequestAllowed(responseReceived)) return
-
         val originalRequest = responseReceived.initiatingRequest()
         val tmpParametersMD5 =
             requestResponseUtils.calculateMD5(originalRequest.parameters().filter { it.type().name != "COOKIE" }
                 .map { "${originalRequest.url().split('?')[0]} | ${it.name()} | ${it.type()}" }.toString())
 
-        if (requestResponseUtils.getAllowedParamsCounts(originalRequest) > configs.maxAllowedParameterCount) {
-            val originalRequestResponse = HttpRequestResponse.httpRequestResponse(originalRequest, responseReceived)
-            logs.markRequestWithExcessiveParameters(tmpParametersMD5, originalRequestResponse)
-            output.logToError("${originalRequestResponse.request().path()} 请求参数超出允许最大参数数量！")
-            return
-        }
+        if (!requestResponseUtils.isRequestAllowed(logs,output,tmpParametersMD5,responseReceived)) return
         val originalRequestResponse = HttpRequestResponse.httpRequestResponse(originalRequest, responseReceived)
-
 
         val logIndex = logs.add(tmpParametersMD5, originalRequestResponse)
         if (logIndex >= 0) {
             val parameters = originalRequest.parameters()
             val newRequests =  GenerateRequests.processRequests(originalRequest)
             requestPayloadMap = GenerateRequests.getRequestPayloadMap()
-//                generateRequestByPayload(originalRequest, parameters, configs.payloads)
             output.logToOutput(
                 "[+] Scanning: ${
                     originalRequest.url().split('?')[0]

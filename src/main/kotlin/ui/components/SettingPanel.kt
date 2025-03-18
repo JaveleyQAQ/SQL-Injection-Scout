@@ -276,7 +276,7 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
                 maximumSize = preferredSize
             },
 
-            "Boring Words" to JScrollPane(JTextArea().apply {
+            "Boring Words:" to JScrollPane(JTextArea().apply {
                 rows = 10
                 columns = 30
                 lineWrap = true
