@@ -4,7 +4,7 @@
 - 添加`Delete item` 选项，可删除单条日志。
 - 在`Site map`/`HTTP history`/`Logger`面板添加右键菜单，支持检测站点**单个**与**所有**请求
   - （搭配[CaA](https://github.com/gh0stkey/CaA)使用本插件的`Fuzz Params List`功能）
-![img.png](img_4.png)
+![img.png](src/main/resources/img_4.png)
 - 优化一些多线程逻辑
 - 删除`×`标记
 
