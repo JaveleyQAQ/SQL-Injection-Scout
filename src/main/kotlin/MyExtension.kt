@@ -3,14 +3,14 @@ import burp.api.montoya.MontoyaApi
 import burp.api.montoya.extension.ExtensionUnloadingHandler
 import config.Configs
 import config.DataPersistence
-import processor.HttpInterceptor
+import example.contextmenu.SiteMapContextMenuItemsProvider
 import model.logentry.LogEntry
 import model.logentry.ModifiedLogEntry
+import processor.http.HttpInterceptor
 import ui.components.LogViewPanel
 
-//import ui.components.MyHttpRequestEditorProvider
 
-class MyExtension : BurpExtension, ExtensionUnloadingHandler {
+class MyExtension : BurpExtension, ExtensionUnloadingHandler{
     private lateinit var api: MontoyaApi
     private lateinit var logs: LogEntry
     private lateinit var modifiedLog: ModifiedLogEntry
@@ -21,7 +21,7 @@ class MyExtension : BurpExtension, ExtensionUnloadingHandler {
     override fun initialize(api: MontoyaApi) {
         this.api = api
         val configs = Configs.INSTANCE
-        api.extension().setName("${configs.extensionName}\uD83D\uDE2D")
+        api.extension().setName("${configs.extensionName}")
 
         dataPersistence = DataPersistence(api)  // 先初始化数据持久化
         logs = LogEntry(api)
@@ -32,6 +32,7 @@ class MyExtension : BurpExtension, ExtensionUnloadingHandler {
         // 注册HTTP处理器和UI
         api.userInterface().registerSuiteTab("SQL Scout",logViewPanel.buildUI() )
         api.http().registerHttpHandler(httpInterceptor)
+        api.userInterface().registerContextMenuItemsProvider(SiteMapContextMenuItemsProvider(api, httpInterceptor))
 
         api.logging().logToOutput(
             """

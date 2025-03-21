@@ -2,47 +2,65 @@ import java.util.concurrent.RejectedExecutionHandler
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.ThreadFactory
-import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class ExecutorManager private constructor() {
 
-
     companion object {
-        // 使用 Kotlin 的 lazy 属性委托来延迟初始化单例
         private val instance: ExecutorManager by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
             ExecutorManager()
         }
-
         fun get(): ExecutorManager = instance
     }
 
+    // 动态计算核心线程数（I/O 密集型任务优化）
+    private val corePoolSize = (Runtime.getRuntime().availableProcessors() * 1.5).toInt().coerceAtLeast(4)
+
+    // 原子计数器保证线程名唯一
+    private val threadCounter = AtomicInteger(0)
+
     val executorService: ScheduledExecutorService by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-        ScheduledThreadPoolExecutor(
-            150, // 直接设置最大线程数为核心线程数
-            { runnable ->
+        object : ScheduledThreadPoolExecutor(
+            corePoolSize,
+            ThreadFactory { runnable ->
                 Thread(runnable).apply {
-                    name = "Request-Worker-${Thread.currentThread().id}"
-                    isDaemon = true // 守护线程，避免阻塞程序关闭
+                    name = "Request-Worker-${threadCounter.getAndIncrement()}"
+                    isDaemon = true
+                    priority = Thread.NORM_PRIORITY - 1 // 降低优先级避免抢占CPU
                 }
             },
-            { runnable, executor ->
-                // 记录拒绝任务并重试（避免丢失请求）
+            RejectedExecutionHandler { runnable, executor ->
+                // 丢弃最旧任务 + 记录日志
+                if (executor.queue.size >= corePoolSize * 2) {
+                    executor.queue.poll()
+//                    api.logging().logToWarn("Task rejected, dropping oldest task: ${runnable.javaClass.simpleName}")
+                }
                 executor.execute(runnable)
             }
-        ).apply {
-            setKeepAliveTime(60, TimeUnit.SECONDS) // 延长空闲线程存活时间
+        ) {
+            // 覆盖 afterExecute 捕获未处理异常
+            override fun afterExecute(r: Runnable, t: Throwable?) {
+                super.afterExecute(r, t)
+                if (t != null) {
+                   println("Uncaught exception in task: ${t}")
+                }
+            }
+        }.apply {
+            setKeepAliveTime(30, TimeUnit.SECONDS)
+            allowCoreThreadTimeOut(true) // 允许核心线程超时
         }
     }
 
-
-
+    // 安全关闭逻辑优化
     fun shutdown() {
-        executorService.shutdownNow()
-        // 清除静态引用以便垃圾回收
-        synchronized(this) {
-            //TODO:
+        executorService.shutdown()
+        try {
+            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                executorService.shutdownNow()
+            }
+        } catch (e: InterruptedException) {
+            executorService.shutdownNow()
         }
     }
-
 }

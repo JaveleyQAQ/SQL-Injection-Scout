@@ -1,4 +1,13 @@
 # 更新日志
+
+## 1.0.7
+- 添加`Delete item` 选项，可删除单条日志。
+- 在`Site map`/`HTTP history`/`Logger`面板添加右键菜单，支持检测站点**单个**与**所有**请求
+  - （搭配[CaA](https://github.com/gh0stkey/CaA)使用本插件的`Fuzz Params List`功能）
+![img.png](img_4.png)
+- 优化一些多线程逻辑
+- 删除`×`标记
+
 ## 1.0.6
 - 默认优先显色排序，每次点击新的主面板新的条目后，副面板排序条件重置
 - 优化一些判断逻辑
@@ -20,8 +29,6 @@
 - 对`null`扫描添加逻辑，忽略`302`状态码时依然为`interesting`
 - 对`302`进行扫描
 - 修改了内置一些`payload`
-
-
 
 ## 1.0.2 2025年 1月16日
 - 修复一直处于`scanning`扫描状态[#3 ](https://github.com/JaveleyQAQ/SQL-Injection-Scout/issues/5)

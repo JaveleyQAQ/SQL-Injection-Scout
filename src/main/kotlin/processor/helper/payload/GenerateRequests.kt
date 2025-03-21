@@ -26,10 +26,6 @@ object GenerateRequests {
         return generateRequestByPayload(newRequest,newRequest.parameters(), configs.payloads)
     }
 
-
-
-
-
     private fun addHiddenParamsToHttpRequest(httpRequest: HttpRequest): HttpRequest {
         val hiddenHttpParameters:MutableList<HttpParameter> = mutableListOf()
         var paramsType: HttpParameterType? = null

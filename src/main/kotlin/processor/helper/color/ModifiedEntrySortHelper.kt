@@ -1,6 +1,6 @@
 package processor.helper.color
 
-import model.ColorGroupedData
+import model.config.ColorGroupedData
 import model.logentry.ModifiedLogDataModel
 import processor.helper.color.ColorSortHelper
 import java.awt.Color

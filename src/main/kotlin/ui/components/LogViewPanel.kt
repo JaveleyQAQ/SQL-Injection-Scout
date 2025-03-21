@@ -3,16 +3,20 @@ package ui.components
 import ModifiedLogTable
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.ui.editor.EditorOptions
+import burp.api.montoya.ui.menu.BasicMenuItem
+import burp.api.montoya.ui.menu.Menu
+import burp.api.montoya.ui.menu.MenuItem
 import config.DataPersistence
-import processor.HttpInterceptor
 import model.logentry.LogEntry
 import model.logentry.ModifiedLogEntry
+import processor.http.HttpInterceptor
 import processor.helper.payload.GenerateRequests
 import java.awt.Color
 import java.awt.Component
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.*
+
 
 class LogViewPanel(
     val api: MontoyaApi,
@@ -39,8 +43,10 @@ class LogViewPanel(
 
         // 创建右键菜单
         val popupMenu = JPopupMenu()
-        val clearLogsMenuItem = JMenuItem("Clear History")
+        val clearLogsMenuItem = JMenuItem("Clear history")
+        val deleteSelectedItem = JMenuItem("Delete item")
         popupMenu.add(clearLogsMenuItem)
+        popupMenu.add(deleteSelectedItem)
 
 //         主日志表格
         val logTable = object : JTable(logs) {
@@ -105,10 +111,17 @@ class LogViewPanel(
         // 添加清除按钮事件
         clearLogsMenuItem.addActionListener {
             synchronized(logs) {
-
                 logs.clear()
                 modifiedLog.clear()
                 GenerateRequests.cleanData()
+            }
+        }
+        deleteSelectedItem.addActionListener {
+            val row = logTable.selectedRow
+            if (row >= 0) {
+                synchronized(logs) {
+                    logs.deleteSelectedItem(row)
+                }
             }
         }
 

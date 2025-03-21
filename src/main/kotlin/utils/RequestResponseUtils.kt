@@ -77,41 +77,35 @@ class RequestResponseUtils {
      *  @param 2. responseTYpe值得扫描
      *  @param 3. 参数个数不超出范围
      */
-    fun isRequestAllowed(logs: LogEntry, output: Logging, tmpParametersMD5: String, httpResponseReceived: HttpResponseReceived): Boolean {
+    fun isRequestAllowed(logs: LogEntry, output: Logging, tmpParametersMD5: String, httpRequestResponse: HttpRequestResponse): Boolean {
 
-        val originalRequest = httpResponseReceived.initiatingRequest()
+        val originalRequest = httpRequestResponse.request()
         //1. Skip OPTIONS
         if (originalRequest.method().equals("OPTIONS", ignoreCase = true)) {
             return false
         }
         // 2. 检查 URL 正则匹配和文件扩展名
-        val originalRequestResponse = HttpRequestResponse.httpRequestResponse(originalRequest, httpResponseReceived)
         if (isAllowedRequestFileExtension(originalRequest) && skipRegexURL(originalRequest.path())) {
-            logs.markRequestWithSkipRegexURL(tmpParametersMD5, originalRequestResponse)
+            logs.markRequestWithSkipRegexURL(tmpParametersMD5, httpRequestResponse)
             output.logToError("${originalRequest.path()} 正则匹配跳过扫描！")
             return false
         }
         if (getAllowedParamsCounts(originalRequest) > configs.maxAllowedParameterCount) {
-            logs.markRequestWithExcessiveParameters(tmpParametersMD5, originalRequestResponse)
-            output.logToError("${originalRequestResponse.request().path()} 请求参数超出允许最大参数数量！")
+            logs.markRequestWithExcessiveParameters(tmpParametersMD5, httpRequestResponse)
+            output.logToError("${httpRequestResponse.request().path()} 请求参数超出允许最大参数数量！")
             return false
         }
 
         // 3. 检查 响应 状态码 配置选项
-        if (isAllowedResponseType(httpResponseReceived)
+        val response = httpRequestResponse.response()
+        if (isAllowedResponseType(httpRequestResponse.response())
             //           && isAllowedParamsCounts(originalRequest)
-            && isAllowedResponseStatus(httpResponseReceived)
-            && checkConfigsChoseBox(httpResponseReceived)
+            && isAllowedResponseStatus(response)
+
         ) {
             // 判断请求中不仅仅是包含Cookie
             val hasAnyParams = originalRequest.hasParameters()
             val hasNonCookieParams = originalRequest.parameters().any { it.type() != HttpParameterType.COOKIE }
-//            val onlyCookies = !originalRequest.hasParameters(HttpParameterType.URL) &&
-//                    !originalRequest.hasParameters(HttpParameterType.BODY) &&
-//                    !originalRequest.hasParameters(HttpParameterType.JSON) &&
-//                    !originalRequest.hasParameters(HttpParameterType.XML_ATTRIBUTE) &&
-//                    !originalRequest.hasParameters(HttpParameterType.XML) &&
-//                    !originalRequest.hasParameters(HttpParameterType.MULTIPART_ATTRIBUTE)
 
             return hasAnyParams && hasNonCookieParams
         }
@@ -134,7 +128,7 @@ class RequestResponseUtils {
         return response.statusCode().toString() == "200" || response.statusCode().toString() == "302"
     }
 
-    private fun checkConfigsChoseBox(responseReceived: HttpResponseReceived): Boolean {
+    fun checkConfigsChoseBox(responseReceived: HttpResponseReceived): Boolean {
 
         // 必须开启 startUP 才能继续
         if (!configs.startUP) {
@@ -173,6 +167,15 @@ class RequestResponseUtils {
      */
     fun getAllowedParamsCounts(request: HttpRequest): Int {
         return request.parameters().count { it.type() != HttpParameterType.COOKIE }
+    }
+
+    fun calculateParameterHash(originalRequest: HttpRequest): String {
+        val parameters = originalRequest.parameters()
+            .filterNot { it.type().name == "COOKIE" }
+            .joinToString(separator = "|") {
+                "${originalRequest.url().split('?').first()}|${it.name()}|${it.type()}"
+            }
+        return calculateMD5(parameters)
     }
 
     /**

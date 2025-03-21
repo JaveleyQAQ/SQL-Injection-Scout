@@ -1,4 +1,4 @@
-package model
+package model.config
 
 import model.logentry.ModifiedLogDataModel
 
