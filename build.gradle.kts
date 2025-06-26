@@ -27,9 +27,8 @@ repositories {
 
             includeGroup("com.github.milchreis")
             includeGroup("com.github.ncoblentz")
-            includeGroup("com.github.CoreyD97")
-//
-//
+//            includeGroup("com.github.CoreyD97")
+
         }
     }
 
@@ -44,13 +43,6 @@ dependencies {
     // Check for latest version: https://central.sonatype.com/artifact/net.portswigger.burp.extensions/montoya-api/versions
     implementation("net.portswigger.burp.extensions:montoya-api:2024.11")
     implementation ("io.github.java-diff-utils:java-diff-utils:4.12")
-    implementation ("com.fifesoft:rsyntaxtextarea:3.5.3")
-    implementation("com.github.milchreis:uibooster:1.21.1")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.0.20")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1") // 兼容 Kotlin 2.0 <button class="citation-flag" data-index="5"><button class="citation-flag" data-index="6">
-
 
 
 //    implementation("com.github.Google.Diff-Match-Patch:diff-match-patch:20121119")
@@ -59,10 +51,9 @@ dependencies {
     // Enable these if you want to use https://github.com/ncoblentz/BurpMontoyaLibrary
     implementation("com.github.ncoblentz:BurpMontoyaLibrary:0.1.26")
     //https://github.com/Milchreis/UiBooster/releases (a dependency of BurpMontoyaLibrary)
-    //implementation("com.github.milchreis:uibooster:1.21.1")
+//    implementation("com.github.milchreis:uibooster:1.21.1")
 //    implementation ("com.github.CoreyD97:Burp-Montoya-Utilities:1.0.0")
 //    implementation ("org.swinglabs:swingx:1.6.1")
-    implementation ("com.github.CoreyD97:BurpExtenderUtilities:c03c1a2a1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 }
 

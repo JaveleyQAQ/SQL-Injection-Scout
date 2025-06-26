@@ -176,15 +176,18 @@ class HttpInterceptor(
                 }
 
                 // null/Null存在差异，但 diff 长度却相同  {"count": 1, "data":{}} diff {"count": 0, "data":{}}
-                if (payload.equals(
-                        "null",
-                        ignoreCase = true
-                    ) && modifiedEntry.diff == "same" && diffText.isNullOrEmpty()
-                ) {
-                    modifiedEntry.diff = "sameLen diff detail"
-                    modifiedEntry.color = listOf(Color.YELLOW, null)
-                    diffText = "The responses have the same length but different contents.  $diffText"
-                }
+//                //误报够多去除了
+//                if (payload.equals(
+//                        "null",
+//                        ignoreCase = true
+//                    )  && modifiedEntry.httpRequestResponse.response().body().length()>10
+//                    && modifiedEntry.httpRequestResponse.response().bodyToString().startsWith("{")
+//                    &&   modifiedEntry.diff == "same" && diffText.isNullOrEmpty()
+//                ) {
+//                    modifiedEntry.diff = "sameLen diff detail"
+//                    modifiedEntry.color = listOf(Color.YELLOW, null)
+//                    diffText = "The responses have the same length but different contents.  $diffText"
+//                }
 
                 // 若存在 SQL 匹配项，则标记为红色并记录
                 if (!checkSQL.isNullOrEmpty()) {

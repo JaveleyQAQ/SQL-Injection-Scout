@@ -128,13 +128,15 @@ class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
     /**
      *  对日志列表进行颜色排序
      */
-    fun  sortByColor(){
+    fun sortByColor() {
         this.cachedMD5?.let { md5 ->
             logEntry.getEntry(md5)?.let { entry ->
-                ModifiedEntrySortHelper.sortByColor(entry.modifiedEntries)
+                SwingUtilities.invokeLater {
+                    ModifiedEntrySortHelper.sortByColor(entry.modifiedEntries)
+                    fireTableDataChanged()
+                }
             }
         }
-        SwingUtilities.invokeLater { fireTableDataChanged() }
     }
 
     fun clear() {

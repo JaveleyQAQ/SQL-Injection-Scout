@@ -5,11 +5,14 @@ import burp.api.montoya.http.message.params.HttpParameter
 import burp.api.montoya.http.message.params.HttpParameterType
 import burp.api.montoya.http.message.params.ParsedHttpParameter
 import burp.api.montoya.http.message.requests.HttpRequest
-import com.nickcoblentz.montoya.PayloadUpdateMode
-import com.nickcoblentz.montoya.withUpdatedContentLength
-import com.nickcoblentz.montoya.withUpdatedParsedParameterValue
+//import com.nickcoblentz.montoya.PayloadUpdateMode
+//import com.nickcoblentz.montoya.withUpdatedContentLength
+//import com.nickcoblentz.montoya.withUpdatedParsedParameterValue
 import config.Configs
+import utils.PayloadUpdateMode
 import utils.RequestResponseUtils
+import utils.withUpdatedContentLength
+import utils.withUpdatedParsedParameterValue
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 

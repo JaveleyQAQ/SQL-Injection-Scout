@@ -37,7 +37,7 @@ SQL Injection Scout 是一个用于 Burp Suite 的扩展，专为帮助安全研
 3. 使用 Gradle 构建项目：
    ```bash
    cd SQL-Injection-Scout
-   ./gradlew build
+   ./gradlew shadowJar
    ```
 4. 在 `Burp Suite` 中加载生成的 `JAR` 文件：
     - 打开 `Burp Suite`，导航到 `Extender` -> `Extensions`。

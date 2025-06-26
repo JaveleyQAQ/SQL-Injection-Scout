@@ -16,6 +16,7 @@ import java.awt.Component
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.*
+import javax.swing.table.DefaultTableCellRenderer
 
 
 class LogViewPanel(
@@ -57,21 +58,23 @@ class LogViewPanel(
             override fun changeSelection(rowIndex: Int, columnIndex: Int, toggle: Boolean, extend: Boolean) {
                 val modelRow = convertRowIndexToModel(rowIndex)
                 currentMD5 = logs.getEntryMD5ByIndex(modelRow).toString()
-                // 先重置排序,再更新数据 每次点击原始请求后重置排序
-                modifiedLog.sortByColor()
-                modifiedLogTable.resetSorter()
+
                 modifiedLog.setCurrentEntry(currentMD5!!)
-                responseView.setSearchExpression("")
-                if (currentMD5 != null) {
-                    val requestResponse = logs.getEntry(currentMD5!!)?.requestResponse
-                    if (requestResponse != null) {
-                        requestView.request = requestResponse.request()
-                        responseView.response = requestResponse.response()
-                    }
 
-
-                    super.changeSelection(rowIndex, columnIndex, toggle, extend)
+                // 延迟执行排序，确保数据刷新完成
+                SwingUtilities.invokeLater {
+                    modifiedLog.sortByColor()
+                    modifiedLogTable.rowSorter?.allRowsChanged()
                 }
+
+                // 设置请求/响应内容
+                val requestResponse = logs.getEntry(currentMD5!!)?.requestResponse
+                if (requestResponse != null) {
+                    requestView.request = requestResponse.request()
+                    responseView.response = requestResponse.response()
+                }
+
+                super.changeSelection(rowIndex, columnIndex, toggle, extend)
             }
         }
 
@@ -137,6 +140,20 @@ class LogViewPanel(
                 }
             }
         })
+        logTable.getColumn("#").cellRenderer = object : DefaultTableCellRenderer() {
+            override fun getTableCellRendererComponent(
+                table: JTable?,
+                value: Any?,
+                isSelected: Boolean,
+                hasFocus: Boolean,
+                row: Int,
+                column: Int
+            ): Component {
+                text = (row + 1).toString()
+                return super.getTableCellRendererComponent(table, text, isSelected, hasFocus, row, column)
+            }
+        }
+
 
         // Use the icon directly
         dashBoardPanel.addTab("SQL Scout", logViewSplitPanel)

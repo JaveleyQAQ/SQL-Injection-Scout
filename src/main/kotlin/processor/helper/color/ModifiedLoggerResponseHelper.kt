@@ -99,7 +99,7 @@ object  ModifiedLoggerResponseHelper {
                 if (diffCount > 6) {
                     entry.color = mutableListOf(Color.LIGHT_GRAY, null)
                 } else {  //否则标记绿色
-                    entry.color = mutableListOf(Color.GREEN, Color.BLACK)
+                    entry.color = ColorManager.determineColor(entry.diff, entry.payload.length, responseCode, diffCount)
                 }
             } else { //少于6词单独计算,且无颜色的
                 if (entry.color[0]==null) {
