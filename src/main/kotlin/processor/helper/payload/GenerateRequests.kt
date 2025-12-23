@@ -21,10 +21,9 @@ object GenerateRequests {
     private val configs = Configs.INSTANCE
     private val requestResponseUtils = RequestResponseUtils()
     private val uniqScannedParameters: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
-    private var requestPayloadMap: MutableMap<HttpRequest?, Pair<String, String>> =
-        ConcurrentHashMap() // 记录请求的参数和payload
+    private var requestPayloadMap: MutableMap<HttpRequest?, Pair<String, String>> = ConcurrentHashMap() // 记录请求的参数和payload
 
-    fun processRequests(httpRequest: HttpRequest): List<HttpRequest> {
+    fun processRequests(httpRequest: HttpRequest, tmpParametersMD5: String): List<HttpRequest> {
         val newRequest =  addHiddenParamsToHttpRequest(httpRequest)
         return generateRequestByPayload(newRequest,newRequest.parameters(), configs.payloads)
     }
@@ -42,10 +41,8 @@ object GenerateRequests {
             hiddenHttpParameters.add(HttpParameter.parameter(params, generateRandomString(3), paramsType))
         }
         val newRequest  =httpRequest.withAddedParameters(hiddenHttpParameters)
-       return newRequest
+        return newRequest
     }
-
-
 
     /**
      * 生成恶意请求
@@ -55,26 +52,23 @@ object GenerateRequests {
         parameters: List<ParsedHttpParameter>,
         payloads: List<String>,
     ): List<HttpRequest> {
-
         val requestListWithPayload = mutableListOf<HttpRequest>()
         addEmptyJsonRequest(request, requestListWithPayload)
         addAllParamsNullRequest(request, parameters, requestListWithPayload)
 
         //参数处理
         parameters.forEach { parameter ->
-            if (!isParameterShippable(parameter)) {
+            if (!isParameterShippable(parameter) && !isIgnoredParameters(parameter)) {
                 val parameterFlag = createParameterFlag(request, parameter)
-                if (!uniqScannedParameters.contains(parameterFlag)) {
-                    uniqScannedParameters.add(parameterFlag)
-                    var currentPayloads = listOf<String>()
-                    currentPayloads = preparePayloads(parameter.value(), payloads)
+                if ( uniqScannedParameters.add(parameterFlag)) {
+                    val currentPayloads: List<String> = preparePayloads(parameter.value(), payloads)
                     currentPayloads.forEach { payload ->
                         val mode = PayloadUpdateMode.APPEND
                         if (payload == "null") PayloadUpdateMode.REPLACE else PayloadUpdateMode.APPEND
                         val newRequest = addPayloadToRequestParam(request, parameter, payload, mode)
                         requestListWithPayload.add(newRequest)
                         requestPayloadMap[newRequest] = Pair(parameter.name(), payload)
-
+//                        println("[+] added payload $parameterFlag to $newRequest")
                     }
                     // 插入null到单个参数,如果就一个参数 单独设置会和addAllParamsNullRequest重复
                     if (configs.nullCheck && parameters.size >= 2) {
@@ -92,10 +86,6 @@ object GenerateRequests {
 
     fun getRequestPayloadMap(): MutableMap<HttpRequest?, Pair<String, String>> {
         return requestPayloadMap
-    }
-
-    fun getUniqScannedParameters(): MutableSet<String> {
-        return uniqScannedParameters
     }
 
     fun cleanData(){
@@ -120,6 +110,10 @@ object GenerateRequests {
      */
     private fun isParameterShippable(parameter: ParsedHttpParameter): Boolean {
         return parameter.type().name.uppercase() == "COOKIE"
+    }
+
+    private fun isIgnoredParameters(parameter: ParsedHttpParameter): Boolean {
+        return  configs.ignoreParams.contains(parameter.name().lowercase())
     }
 
     /**
@@ -170,33 +164,23 @@ object GenerateRequests {
         payload: String,
         module: PayloadUpdateMode
     ): HttpRequest {
-        return when (parameter.type()) {
-
+        return when (parameter.type()){
             HttpParameterType.JSON -> {
-                val valueType = requestResponseUtils.jsonValueType(request, parameter)
-                if (valueType != Int && !(payload.contains("'") || payload.contains("\""))) {
-                    return request // Skip
-                }
-                return request.withUpdatedParsedParameterValue(
+                request.withUpdatedParsedParameterValue(
                     parameter,
                     payload.replace("\"", "%22", true).replace("#", "%23", true),
                     module
                 ).withUpdatedContentLength(true)
             }
-
             else ->
-                return request.withUpdatedParsedParameterValue(
+                    request.withUpdatedParsedParameterValue(
                     parameter,
                     payload.replace("\"", "%22", true).replace("#", "%23", true).
                     replace(" ", "%20", true),
 //                    api.utilities().urlUtils().encode(payload),
                     module
                 ).withUpdatedContentLength(true)
-
-
         }
-
-
     }
 
     private fun generateRandomString(length: Int): String {

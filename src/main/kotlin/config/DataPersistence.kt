@@ -24,7 +24,7 @@ class DataPersistence(val api: MontoyaApi) {
     }
 
     fun loadData() {
-       // println("DataPersistence loadData ")
+        // println("DataPersistence loadData ")
         // 加载基本配置
         config.startUP = persistenceData.getBoolean("startUP") ?: true
         config.isInScope = persistenceData.getBoolean("isInScope") ?: true
@@ -45,7 +45,6 @@ class DataPersistence(val api: MontoyaApi) {
                 config.payloads.add(i)
             }
         }
-
         persistenceData.getStringList("boringWords")?.let {
             config.boringWords.clear()
             for (i in it){
@@ -70,6 +69,12 @@ class DataPersistence(val api: MontoyaApi) {
                 config.hiddenParams.add(i)
             }
         }
+        persistenceData.getStringList("ignoreParams")?.let {
+            config.ignoreParams.clear()
+            for (i in it){
+                config.ignoreParams.add(i)
+            }
+        }
     }
 
     private fun setData() {
@@ -79,45 +84,41 @@ class DataPersistence(val api: MontoyaApi) {
         persistenceData.setBoolean("proxy", config.proxy)
         persistenceData.setBoolean("repeater", config.repeater)
         persistenceData.setBoolean("nullCheck", config.nullCheck)
-
-//        // 保存其他数值类型配置
+        // 保存其他数值类型配置
         persistenceData.setInteger("maxAllowedParameterCount", config.maxAllowedParameterCount)
         persistenceData.setLong("randomCheckTimer", config.randomCheckTimer)
         persistenceData.setLong("fixedIntervalTime", config.fixedIntervalTime)
         persistenceData.setString("neverScanRegex", config.neverScanRegex)
-
-
-//         保存 payloads
+        //保存 payloads
         val payloadsList = PersistedList<String>.persistedStringList()
         payloadsList.clear()
         payloadsList.addAll(config.payloads)
         persistenceData.setStringList("payloads", payloadsList)
-
-        //         保存hiddenparams
+        //保存hiddenparams
         val hiddenParams = PersistedList<String>.persistedStringList()
         hiddenParams.clear()
         hiddenParams.addAll(config.hiddenParams)
         persistenceData.setStringList("hiddenParams", hiddenParams)
-
-
-//         保存 boringWords
+        //保存 boringWords
         val boringWordsList = PersistedList<String>.persistedStringList()
         boringWordsList.clear()
         boringWordsList.addAll(config.boringWords)
         persistenceData.setStringList("boringWords", boringWordsList)
-
-////         保存 uninterestingType
+        //保存 ignoreParams
+        val ignoreParams = PersistedList<String>.persistedStringList()
+        ignoreParams.clear()
+        ignoreParams.addAll(config.ignoreParams)
+        persistenceData.setStringList("ignoreParams", ignoreParams)
+        //保存 uninterestingType
         val uninterestingType = PersistedList<String>.persistedStringList()
         uninterestingType.clear()
         uninterestingType.addAll(config.uninterestingType)
         persistenceData.setStringList("uninterestingType", uninterestingType)
-
-//         保存 allowedMimeTypeMimeType
+        //保存 allowedMimeTypeMimeType
         val mimeTypeList = PersistedList<String>.persistedStringList()
         mimeTypeList.clear()
         mimeTypeList.addAll(config.allowedMimeTypeMimeType)
         persistenceData.setStringList("allowedMimeTypeMimeType", mimeTypeList)
-
     }
 
     /**

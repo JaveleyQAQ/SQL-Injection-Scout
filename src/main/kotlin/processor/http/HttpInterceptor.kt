@@ -75,7 +75,7 @@ class HttpInterceptor(
         val logIndex = logs.add(tmpParametersMD5, httpRequestResponse)
         if (logIndex >= 0) {
             val parameters = originalRequest.parameters().filterNot { it.type().name == "COOKIE" }
-            val newRequests = GenerateRequests.processRequests(originalRequest)
+            val newRequests = GenerateRequests.processRequests(originalRequest,tmpParametersMD5)
             requestPayloadMap = GenerateRequests.getRequestPayloadMap()
             output.logToOutput(
                 "[+] Scanning: ${originalRequest.url().split('?').first()} " +

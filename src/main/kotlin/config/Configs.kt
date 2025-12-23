@@ -28,7 +28,7 @@ enum class Configs {
     var neverScanRegex: String = "(delete|del)"
 
     var filterStatusButton: Boolean = true
-    var randomCheckTimer: Long = 1000 // 随机扫描时间改为1秒
+    var randomCheckTimer: Long = 3000 // 随机扫描时间改为1秒
     var fixedIntervalTime: Long = 100 // 固定间隔改为100ms
 
     var urlFileExtension:MutableList<String> = mutableListOf(
@@ -57,10 +57,7 @@ enum class Configs {
 //        "' sleep(3)",
 //        "';WAITFOR DELAY '0:0:5'--" ,
 //        "' AND (SELECT * FROM (SELECT(SLEEP(5)))a)--",
-      //  "SLEEP(3) /*' or SLEEP(3) or'\" or SLEEP(3) or \""
-    )
-
-    var hiddenParams: MutableList<String> = mutableListOf(
+        //  "SLEEP(3) /*' or SLEEP(3) or'\" or SLEEP(3) or \""
     )
 
     val ERROR_SYNTAX: Array<String> = arrayOf(
@@ -163,9 +160,7 @@ enum class Configs {
     var maxAllowedParameterCount: Int = 50 // max allowed parameters
     var allowedMimeTypeMimeType: MutableList<String> =  mutableListOf<String>("NONE", "HTML", "PLAIN_TEXT", "JSON", "XML", "YAML", "APPLICATION_UNKNOWN", "LEGACY_SER_AMF")
     var uninterestingType = mutableListOf("js", "js.map", "css", "css.map", "swf", "zip", "gz", "7zip", "war", "jar", "doc", "docx", "xls", "xlsx", "pdf", "exe", "dll", "png", "jpeg", "jpg", "bmp", "tif", "tiff", "gif", "webp", "svg", "ico", "m3u", "mp4", "m4a", "ogg", "aac", "flac", "mp3", "wav", "avi", "mov", "mpeg", "wmv", "webm", "woff", "woff2", "ttf")
-    var heuristicWords: MutableList<String> = mutableListOf(
-
-    )
+    var heuristicWords: MutableList<String> = mutableListOf()
     var boringWords:MutableList<String> = mutableListOf(
         "HTTP Status 400 – Bad Request",
         "Failed to convert value of type ['\"]([^'\"]+)['\"]",
@@ -175,10 +170,24 @@ enum class Configs {
         "\"code\":400",
         "无法解析请求参数",
         "无效的请求",
-
-
+        )
+    var ignoreParams: MutableList<String> = mutableListOf(
+        "_t",
+        "ts",
+        "time",
+        "timestamp",
+        "requestId",
+        "sign",
+        "nonce"
     )
-
+    var hiddenParams: MutableList<String> = mutableListOf(
+        "desc",
+        "order",
+        "sort",
+        "sortBy",
+        "column",
+        "field"
+    )
 }
 
 

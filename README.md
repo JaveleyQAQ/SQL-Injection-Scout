@@ -64,13 +64,16 @@ SQL Injection Scout 是一个用于 Burp Suite 的扩展，专为帮助安全研
 - **性能优化**：进一步优化扫描性能，减少资源消耗。
 
 ---
+## Q&A
+#### 为什么会部分请求参数缺失？
+1. 为了降噪/减少请求，插件将不会扫描同接口的重复参数，有些系统会复用同一个 API 接口，不同功能点只是传不同字参数。在这种场景下，扫描策略是：
+- 1. 同一路径下已经fuzz过的参数，不再重复fuzz，已扫描参数以`url path|| parameters a || JSON`存储 。
+- 2. 如果下一次请求多了新参数（比如从 abc 变成 abcd），则只对新增的 d 参数生成 fuzz 请求
 
-####  [🔥 Update History](CHANGELOG.md)
-
+####  [🔥 Update History Click ME](CHANGELOG.md)
 
 ## 联系
-
 如有任何问题或建议，请通过 [JaveleyQAQ@outlook.com](mailto:your.email@example.com) 联系我。
 
 ## Start Hitory
-![](https://star-history.com/#JaveleyQAQ/SQL-Injection-Scout&Timeline)
+[![Star History Chart](https://api.star-history.com/svg?repos=JaveleyQAQ/SQL-Injection-Scout,SQL-Injection-Scout/SQL-Injection-Scout&type=timeline&legend=bottom-right)](https://www.star-history.com/#JaveleyQAQ/SQL-Injection-Scout&SQL-Injection-Scout/SQL-Injection-Scout&type=timeline&legend=bottom-right)

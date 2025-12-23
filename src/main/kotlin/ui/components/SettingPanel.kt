@@ -35,7 +35,8 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
         "SQL Payloads:" to "SQL injection payloads to test against parameters",
         "Never Scan Extensions:" to "File extensions that will be skipped during scanning",
         "Scan MIME Types:" to "MIME types that will be included in scanning",
-        "Boring Words:" to "Boring words that will be excluded in scan"
+        "Boring Words:" to "Boring words that will be excluded in scan",
+        "Ignore Params:" to "Ignore parameters that will be passed in",
     )
 
     /**
@@ -48,7 +49,7 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
         preferredSize = Dimension(800, 600)
         minimumSize = preferredSize
         maximumSize = preferredSize
-        
+
         // 创建主面板
         val mainPanel = JPanel(GridBagLayout())
         add(mainPanel, BorderLayout.CENTER)
@@ -91,16 +92,16 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
                 modePanel.add(logoLabel)
             } else {
                 // 如果图标加载失败，使用文本作为后备
-                modePanel.add(JLabel("SQL Scout").apply { 
-                    foreground = Color.RED 
+                modePanel.add(JLabel("SQL Scout").apply {
+                    foreground = Color.RED
                     font = FONT_MODE
                 })
             }
         } catch (e: Exception) {
             // 如果出现任何错误，使用文本作为后备
             println("Error loading icon: ${e.message}")
-            modePanel.add(JLabel("SQL Scout").apply { 
-                foreground = Color.RED 
+            modePanel.add(JLabel("SQL Scout").apply {
+                foreground = Color.RED
                 font = FONT_MODE
             })
         }
@@ -123,7 +124,7 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
                 font = Font(FONT_FAMILY, Font.PLAIN, 14)
                 // 设置文本和表情
                 this.text = if (initialValue) "$text" else "$text😢"
-                
+
                 // 添加动作监听器
                 addActionListener {
                     setter(isSelected)
@@ -159,7 +160,7 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
         paramsPanel.preferredSize = Dimension(480, 0)
         paramsPanel.minimumSize = paramsPanel.preferredSize
         paramsPanel.maximumSize = paramsPanel.preferredSize
-        
+
         // 设置边框和标题
         paramsPanel.border = BorderFactory.createCompoundBorder(
             BorderFactory.createTitledBorder("Configuration"),
@@ -304,6 +305,35 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
                 })
             }),
 
+            "Ignore Params:" to JScrollPane(JTextArea().apply {
+                rows = 10
+                columns = 30
+                lineWrap = true
+                wrapStyleWord = true
+                font = FONT_OPTIONS
+                text = configs.ignoreParams.joinToString("\n")
+                border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
+                // 添加文档监听器
+                document.addDocumentListener(object : javax.swing.event.DocumentListener {
+                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+
+                    private fun updateConfig() {
+                        configs.ignoreParams.clear()
+                        val text = text.trim()
+                        if (text.isNotEmpty()) {
+                            // 分割并过滤掉空白行
+                            val new = text.lines().filter { it.isNotBlank() }
+                            configs.ignoreParams.clear()
+                            configs.ignoreParams.addAll(new)
+                            dataPersistence.updateConfig()
+                        }
+                    }
+                })
+            }),
+
+
             "Never Scan Extensions:" to JScrollPane(JTextArea().apply {
                 rows = 10
                 columns = 30
@@ -400,7 +430,7 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
             val itemPanel = JPanel().apply {
                 layout = BoxLayout(this, BoxLayout.X_AXIS)
                 alignmentX = LEFT_ALIGNMENT
-                maximumSize = Dimension(Short.MAX_VALUE.toInt(), 
+                maximumSize = Dimension(Short.MAX_VALUE.toInt(),
                     when (component) {
                         is JScrollPane -> 150  // JScrollPane的高度
                         else -> 35            // 普通组件的高度
@@ -419,13 +449,13 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
                     if (component is JScrollPane) {
                         verticalAlignment = JLabel.TOP
                     }
-                    
+
                     // 添加工具提示
                     tooltips[label]?.let { tooltip ->
                         toolTipText = tooltip
                     }
                 }
-                
+
                 // 创建一个包装面板来容纳标签，并设置最小宽度
                 val labelWrapper = JPanel().apply {
                     layout = BoxLayout(this, BoxLayout.X_AXIS)
@@ -434,7 +464,7 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
                     minimumSize = Dimension(200, 25)  // 设置最小宽度
                     preferredSize = Dimension(200, 25)
                 }
-                
+
                 itemPanel.add(labelWrapper)
             }
 
@@ -457,9 +487,9 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
             // 添加组件
             itemPanel.add(Box.createHorizontalStrut(5))  // 添加固定间距
             itemPanel.add(component)
-            
+
             // 不再添加尾部的弹性空间，让组件靠左
-            
+
             panel.add(itemPanel)
             panel.add(Box.createRigidArea(Dimension(0, 5)))
         }
@@ -477,47 +507,47 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
         previewPanel.preferredSize = Dimension(240, 0)
         previewPanel.minimumSize = previewPanel.preferredSize
         previewPanel.maximumSize = previewPanel.preferredSize
-        
+
         // 设置边框和标题
         previewPanel.border = BorderFactory.createCompoundBorder(
             BorderFactory.createTitledBorder("Fuzz Params List:"),
             BorderFactory.createEmptyBorder(5, 5, 5, 5)
         )
-        
+
         // 创建预览文本区域
         val previewArea = JTextArea().apply {
-                rows = 10
-                columns = 30
-                lineWrap = true
-                wrapStyleWord = true
-                font = FONT_OPTIONS
-                text = configs.hiddenParams.joinToString("\n")
-                border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
-                // 添加文档监听器
-                document.addDocumentListener(object : javax.swing.event.DocumentListener {
-                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+            rows = 10
+            columns = 30
+            lineWrap = true
+            wrapStyleWord = true
+            font = FONT_OPTIONS
+            text = configs.hiddenParams.joinToString("\n")
+            border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
+            // 添加文档监听器
+            document.addDocumentListener(object : javax.swing.event.DocumentListener {
+                override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+                override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+                override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
 
-                    private fun updateConfig() {
+                private fun updateConfig() {
+                    configs.hiddenParams.clear()
+                    val text = text.trim()
+                    if (text.isNotEmpty()) {
+                        // 分割并过滤掉空白行
+                        val new = text.lines().filter { it.isNotBlank() }
                         configs.hiddenParams.clear()
-                        val text = text.trim()
-                        if (text.isNotEmpty()) {
-                            // 分割并过滤掉空白行
-                            val new = text.lines().filter { it.isNotBlank() }
-                            configs.hiddenParams.clear()
-                            configs.hiddenParams.addAll(new)
-                            dataPersistence.updateConfig()
-                        }
+                        configs.hiddenParams.addAll(new)
+                        dataPersistence.updateConfig()
                     }
-                })
+                }
+            })
         }
-        
+
         // 创建滚动面板
         val scrollPane = JScrollPane(previewArea).apply {
             border = BorderFactory.createEmptyBorder()
         }
-        
+
         // 创建可伸缩的容器面板
         val stretchPanel = JPanel(BorderLayout()).apply {
             add(scrollPane, BorderLayout.CENTER)
@@ -525,7 +555,7 @@ class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
             add(Box.createHorizontalStrut(10), BorderLayout.WEST)
             add(Box.createHorizontalStrut(10), BorderLayout.EAST)
         }
-        
+
         previewPanel.add(stretchPanel, BorderLayout.CENTER)
 
         // 添加到主面板
