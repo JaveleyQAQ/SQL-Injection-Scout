@@ -2,16 +2,19 @@ package example.contextmenu
 
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.core.ToolType
-import burp.api.montoya.http.message.requests.HttpRequest
+import burp.api.montoya.http.message.HttpRequestResponse
 import burp.api.montoya.ui.contextmenu.ContextMenuEvent
 import burp.api.montoya.ui.contextmenu.ContextMenuItemsProvider
+import config.ExecutorManager
 import processor.http.HttpInterceptor
 import java.awt.Component
+import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.JMenuItem
 import javax.swing.SwingUtilities
 
 /**
- * SiteMap menu
+ *
+ * 支持单选、多选扫描，以及按 Sitemap 全量扫描
  */
 class SiteMapContextMenuItemsProvider(
     private val api: MontoyaApi,
@@ -19,70 +22,98 @@ class SiteMapContextMenuItemsProvider(
 ) : ContextMenuItemsProvider {
 
     companion object {
-        private const val MENU_CHECK_REQUEST = "Check request"
-        private const val MENU_CHECK_ALL_REQUESTS = "Check all requests for host: "
+        private const val MENU_CHECK_SELECTED = " Check selected"
+        private const val MENU_CHECK_HOST = "Check all for host: "
     }
 
     override fun provideMenuItems(event: ContextMenuEvent): MutableList<Component>? {
-        if (!event.isFromTool(ToolType.PROXY, ToolType.TARGET,ToolType.LOGGER)) return null
-        val requestResponse =  event.selectedRequestResponses().firstOrNull()  ?: return null
-        return mutableListOf<Component>().apply {
-            add(createCheckRequestMenuItem(requestResponse.request()))
-            createCheckAllRequestsMenuItem(requestResponse.httpService()?.host())?.let { add(it) }
-        }
-    }
+        if (!event.isFromTool(ToolType.PROXY, ToolType.TARGET, ToolType.LOGGER, ToolType.INTRUDER)) return null
 
-    private fun createCheckRequestMenuItem(httpRequest: HttpRequest): JMenuItem =
-        JMenuItem(MENU_CHECK_REQUEST).apply {
+        val selectedItems = event.selectedRequestResponses()
+        if (selectedItems.isEmpty()) return null
+        val menuList = mutableListOf<Component>()
+        val scanLabel = if (selectedItems.size == 1) {
+            "$MENU_CHECK_SELECTED request"
+        } else {
+            "$MENU_CHECK_SELECTED ${selectedItems.size} requests"
+        }
+
+        val scanItem = JMenuItem(scanLabel).apply {
             addActionListener {
-                val startTime = System.currentTimeMillis()
-                ExecutorManager.get().executorService.submit {
-                    val response = api.http().sendRequest(httpRequest)
-                    httpInterceptor.processHttpHandler(response)
-                    updateProgress(1,1,"")
-                }
-                logCompletion(1,"", startTime )
+                performScan(selectedItems)
             }
         }
+        menuList.add(scanItem)
+
+        // Check Host
+        val firstItem = selectedItems.first()
+        val host = firstItem.httpService()?.host()
+
+        if (host != null) {
+            val hostItem = JMenuItem("$MENU_CHECK_HOST$host").apply {
+                addActionListener {
+                    performScanByHost(host)
+                }
+            }
+            menuList.add(hostItem)
+        }
+
+        return menuList
+    }
 
     /**
-     * check all requests for selected host
+     * 处理选中的请求列表 (多选/单选)
      */
-    private fun createCheckAllRequestsMenuItem(host: String?): JMenuItem? =
-        host?.let { host ->
-            JMenuItem("$MENU_CHECK_ALL_REQUESTS$host").apply {
-                addActionListener { processAllRequests(host) }
-            }
-        }
+    private fun performScan(items: List<HttpRequestResponse>) {
+        val total = items.size
+        val startTime = System.currentTimeMillis()
+        val counter = AtomicInteger(0) // 线程安全的计数器
 
-    private fun processAllRequests(host: String) {
-        ExecutorManager.get().executorService.submit {
-            val startTime = System.currentTimeMillis()
-            val filteredRequests = api.siteMap().requestResponses()
-                .filter { it.request().httpService()?.host()?.equals(host, true) == true }
-            filteredRequests.forEachIndexed { index, entry ->
+        api.logging().logToOutput("[+] Batch scan started: $total requests queued.")
+
+        for (item in items) {
+            val request = item.request()
+            ExecutorManager.get().executorService.submit {
                 try {
-                    val response = api.http().sendRequest(entry.request())
+                    val response = api.http().sendRequest(request)
                     httpInterceptor.processHttpHandler(response)
-                    updateProgress(index + 1, filteredRequests.size, host)
                 } catch (e: Exception) {
-                    api.logging().logToError("Request failed: ${e.message}")
+                    api.logging().logToError("Scan failed for ${request.url()}: ${e.message}")
+                } finally {
+                    val finishedCount = counter.incrementAndGet()
+                    if (finishedCount == total) {
+                        logCompletion(total, "Selection", startTime)
+                    }
                 }
             }
-            logCompletion(filteredRequests.size, host, startTime)
         }
     }
 
-    private fun updateProgress(current: Int, total: Int, host: String) {
-        SwingUtilities.invokeLater {
-            api.logging().logToOutput("Processing $current/$total")
+    /**
+     * 扫描指定 Host 下的所有请求 (SiteMap)
+     */
+    private fun performScanByHost(host: String) {
+        // 获取 SiteMap 可能会很慢
+        ExecutorManager.get().executorService.submit {
+            val startTime = System.currentTimeMillis()
+            api.logging().logToOutput("[*] Fetching sitemap for host: $host ...")
+
+            // 过滤 SiteMap
+            val targetRequests = api.siteMap().requestResponses()
+                .filter { it.httpService()?.host()?.equals(host, ignoreCase = true) == true }
+
+            if (targetRequests.isEmpty()) {
+                api.logging().logToOutput("[-] No requests found for host: $host")
+                return@submit
+            }
+            api.logging().logToOutput("[+] Found ${targetRequests.size} requests for $host. Starting scan...")
+            performScan(targetRequests)
         }
     }
 
-    private fun logCompletion(total: Int, host: String, startTime: Long) {
-        SwingUtilities.invokeLater {
-            val duration = System.currentTimeMillis() - startTime
-            api.logging().logToOutput("Completed $total requests for $host in ${duration}ms")
-        }
+
+    private fun logCompletion(total: Int, target: String, startTime: Long) {
+        val duration = System.currentTimeMillis() - startTime
+        api.logging().logToOutput("[=] Completed scanning $total requests for [$target] in ${duration}ms")
     }
 }

@@ -6,7 +6,7 @@ import burp.api.montoya.http.message.params.ParsedHttpParameter
 import burp.api.montoya.http.message.requests.HttpRequest
 
 
-public fun HttpRequest.withUpdatedContentLength(addContentLengthHeaderIfNotPresent : Boolean = false) : HttpRequest {
+fun HttpRequest.withUpdatedContentLength(addContentLengthHeaderIfNotPresent : Boolean = false) : HttpRequest {
     if(this.hasHeader("Content-Length"))
         return this.withUpdatedHeader("Content-Length",this.body().length().toString())
     else if(addContentLengthHeaderIfNotPresent)
@@ -21,7 +21,7 @@ enum class PayloadUpdateMode {
     APPEND
 }
 
-public fun HttpRequest.withUpdatedParsedParameterValue(parsedParameter : ParsedHttpParameter, encodedValue : String, payloadUpdateMode : PayloadUpdateMode = PayloadUpdateMode.REPLACE) : HttpRequest
+fun HttpRequest.withUpdatedParsedParameterValue(parsedParameter : ParsedHttpParameter, encodedValue : String, payloadUpdateMode : PayloadUpdateMode = PayloadUpdateMode.REPLACE) : HttpRequest
 {
     var updatedParsedParam = this.parameters().find { it.name()==parsedParameter.name() && it.type() == parsedParameter.type() && it.value()==parsedParameter.value() }
 

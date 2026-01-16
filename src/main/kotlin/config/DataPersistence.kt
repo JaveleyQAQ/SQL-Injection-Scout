@@ -4,127 +4,87 @@ import burp.api.montoya.MontoyaApi
 import burp.api.montoya.persistence.PersistedList
 import burp.api.montoya.persistence.PersistedObject
 
-/**
- * 数据持久化
- */
 class DataPersistence(val api: MontoyaApi) {
-    private var persistenceData: PersistedObject = this.api.persistence().extensionData()!!
-    private val JAVELEYFLAG = "JAVELEYFLAG"
+    private val persistenceData: PersistedObject = api.persistence().extensionData() ?: throw IllegalStateException("Persistence not available")
     val config = Configs.INSTANCE
 
+    private companion object {
+        const val KEY_FLAG = "JAVELEYFLAG"
+    }
+
     init {
-        if (persistenceData.getString(JAVELEYFLAG) == null) {
-            // 首次加载，初始化持久化数据
-            persistenceData.setString(JAVELEYFLAG, JAVELEYFLAG)
-            setData()
+        if (persistenceData.getString(KEY_FLAG) == null) {
+            persistenceData.setString(KEY_FLAG, KEY_FLAG)
+            saveData()
         } else {
-            // 非首次加载，读取持久化数据
             loadData()
         }
     }
 
     fun loadData() {
-        // println("DataPersistence loadData ")
-        // 加载基本配置
-        config.startUP = persistenceData.getBoolean("startUP") ?: true
-        config.isInScope = persistenceData.getBoolean("isInScope") ?: true
-        config.proxy = persistenceData.getBoolean("proxy") ?: true
-        config.repeater = persistenceData.getBoolean("repeater") ?: true
-        config.nullCheck = persistenceData.getBoolean("nullCheck") ?: true
+        with(persistenceData) {
+            getBoolean("startUP")?.let { config.startUP = it }
+            getBoolean("isInScope")?.let { config.isInScope = it }
+            getBoolean("proxy")?.let { config.proxy = it }
+            getBoolean("repeater")?.let { config.repeater = it }
+            getBoolean("nullCheck")?.let { config.nullCheck = it }
 
-//         加载其他数值类型配置
-        config.maxAllowedParameterCount = persistenceData.getInteger("maxAllowedParameterCount") ?: 30
-        config.randomCheckTimer = persistenceData.getLong("randomCheckTimer") ?: 5000
-        config.fixedIntervalTime = persistenceData.getLong("fixedIntervalTime") ?: 300
-        config.neverScanRegex = persistenceData.getString("neverScanRegex") ?: "(delete|del)"
+            getInteger("maxAllowedParameterCount")?.let { config.maxAllowedParameterCount = it }
+            getLong("randomCheckTimer")?.let { config.randomCheckTimer = it }
+            getLong("fixedIntervalTime")?.let { config.fixedIntervalTime = it }
+            getString("neverScanRegex")?.let { config.neverScanRegex = it }
+            getString("nestedJsonParams")?.let { config.nestedJsonParams = it }
 
-        // 加载列表类型配置
-        persistenceData.getStringList("payloads")?.let {
-            config.payloads.clear()
-            for (i in it){
-                config.payloads.add(i)
-            }
+            // 加载列表：PersistedList
+            loadListToConfig("payloads", config.payloads)
+            loadListToConfig("boringWords", config.boringWords)
+            loadListToConfig("uninterestingType", config.uninterestingType)
+            loadListToConfig("allowedMimeTypeMimeType", config.allowedMimeTypeMimeType)
+            loadListToConfig("hiddenParams", config.hiddenParams)
+            loadListToConfig("ignoreParams", config.ignoreParams)
         }
-        persistenceData.getStringList("boringWords")?.let {
-            config.boringWords.clear()
-            for (i in it){
-                config.boringWords.add(i)
-            }
+    }
+
+    fun saveData() {
+        with(persistenceData) {
+            setBoolean("startUP", config.startUP)
+            setBoolean("isInScope", config.isInScope)
+            setBoolean("proxy", config.proxy)
+            setBoolean("repeater", config.repeater)
+            setBoolean("nullCheck", config.nullCheck)
+
+            setInteger("maxAllowedParameterCount", config.maxAllowedParameterCount)
+            setLong("randomCheckTimer", config.randomCheckTimer)
+            setLong("fixedIntervalTime", config.fixedIntervalTime)
+            setString("neverScanRegex", config.neverScanRegex)
+            setString("nestedJsonParams", config.nestedJsonParams)
+
+            // 修复点：调用 .toPersistedList() 进行类型转换
+            setStringList("payloads", config.payloads.toPersistedList())
+            setStringList("hiddenParams", config.hiddenParams.toPersistedList())
+            setStringList("boringWords", config.boringWords.toPersistedList())
+            setStringList("ignoreParams", config.ignoreParams.toPersistedList())
+            setStringList("uninterestingType", config.uninterestingType.toPersistedList())
+            setStringList("allowedMimeTypeMimeType", config.allowedMimeTypeMimeType.toPersistedList())
         }
-        persistenceData.getStringList("uninterestingType")?.let {
-            config.uninterestingType.clear()
-            for (i in it){
-                config.uninterestingType.add(i)
-            }
-        }
-        persistenceData.getStringList("allowedMimeTypeMimeType")?.let {
-            config.allowedMimeTypeMimeType.clear()
-            for (i in it){
-                config.allowedMimeTypeMimeType.add(i)
-            }
-        }
-        persistenceData.getStringList("hiddenParams")?.let {
-            config.hiddenParams.clear()
-            for (i in it){
-                config.hiddenParams.add(i)
-            }
-        }
-        persistenceData.getStringList("ignoreParams")?.let {
-            config.ignoreParams.clear()
-            for (i in it){
-                config.ignoreParams.add(i)
+    }
+
+    fun updateConfig() = saveData()
+
+    private fun PersistedObject.loadListToConfig(key: String, targetList: MutableList<String>) {
+        this.getStringList(key)?.let { savedList ->
+            targetList.clear()
+            savedList.forEach {
+                targetList.add(it.toString())
             }
         }
     }
 
-    private fun setData() {
-        // 保存基本配置
-        persistenceData.setBoolean("startUP", config.startUP)
-        persistenceData.setBoolean("isInScope", config.isInScope)
-        persistenceData.setBoolean("proxy", config.proxy)
-        persistenceData.setBoolean("repeater", config.repeater)
-        persistenceData.setBoolean("nullCheck", config.nullCheck)
-        // 保存其他数值类型配置
-        persistenceData.setInteger("maxAllowedParameterCount", config.maxAllowedParameterCount)
-        persistenceData.setLong("randomCheckTimer", config.randomCheckTimer)
-        persistenceData.setLong("fixedIntervalTime", config.fixedIntervalTime)
-        persistenceData.setString("neverScanRegex", config.neverScanRegex)
-        //保存 payloads
-        val payloadsList = PersistedList<String>.persistedStringList()
-        payloadsList.clear()
-        payloadsList.addAll(config.payloads)
-        persistenceData.setStringList("payloads", payloadsList)
-        //保存hiddenparams
-        val hiddenParams = PersistedList<String>.persistedStringList()
-        hiddenParams.clear()
-        hiddenParams.addAll(config.hiddenParams)
-        persistenceData.setStringList("hiddenParams", hiddenParams)
-        //保存 boringWords
-        val boringWordsList = PersistedList<String>.persistedStringList()
-        boringWordsList.clear()
-        boringWordsList.addAll(config.boringWords)
-        persistenceData.setStringList("boringWords", boringWordsList)
-        //保存 ignoreParams
-        val ignoreParams = PersistedList<String>.persistedStringList()
-        ignoreParams.clear()
-        ignoreParams.addAll(config.ignoreParams)
-        persistenceData.setStringList("ignoreParams", ignoreParams)
-        //保存 uninterestingType
-        val uninterestingType = PersistedList<String>.persistedStringList()
-        uninterestingType.clear()
-        uninterestingType.addAll(config.uninterestingType)
-        persistenceData.setStringList("uninterestingType", uninterestingType)
-        //保存 allowedMimeTypeMimeType
-        val mimeTypeList = PersistedList<String>.persistedStringList()
-        mimeTypeList.clear()
-        mimeTypeList.addAll(config.allowedMimeTypeMimeType)
-        persistenceData.setStringList("allowedMimeTypeMimeType", mimeTypeList)
-    }
 
-    /**
-     * 更新配置并保存到持久化存储
-     */
-    fun updateConfig() {
-        setData()
+    private fun List<String>.toPersistedList(): PersistedList<String> {
+        val list = PersistedList.persistedStringList()
+        // 将当前 List 的所有元素添加进去
+        list.addAll(this)
+        return list
     }
 }

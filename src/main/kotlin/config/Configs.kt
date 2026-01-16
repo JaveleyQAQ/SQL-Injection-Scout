@@ -2,8 +2,10 @@ package config
 
 import java.util.Properties
 
-enum class Configs {
-    INSTANCE;
+class Configs {
+    companion object {
+        val INSTANCE = Configs()
+    }
 
     var version: String
     var extensionName: String
@@ -22,44 +24,22 @@ enum class Configs {
     var isInScope: Boolean = true
     var proxy: Boolean = true
     var repeater: Boolean = true
-    var requestTimeout = 600L
 
     var nullCheck: Boolean = true
     var neverScanRegex: String = "(delete|del)"
 
-    var filterStatusButton: Boolean = true
-    var randomCheckTimer: Long = 3000 // 随机扫描时间改为1秒
-    var fixedIntervalTime: Long = 100 // 固定间隔改为100ms
+    var randomCheckTimer: Long = 3000
+    var fixedIntervalTime: Long = 300
 
-    var urlFileExtension:MutableList<String> = mutableListOf(
-        "js", "css", "jpg", "jpeg", "png", "gif", "ico",
-        "woff", "woff2", "ttf", "eot", "mp4", "webm", "mp3",
-        "wav", "pdf", "doc", "docx", "xls", "xlsx"
-    )
     var payloads: MutableList<String> = mutableListOf<String>(
         "åååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååååå",
         "'\"%df",
-        "/1",
         "'''",
         "''''",
         "#{xx}",
         "#xx}",
         "sb'='\"=\"",
-//        "'",
-//        "\"",
-//        "')",
-//        "''",
-//        "'||'1",
-//        "\"||\"1",
-//        "sb'='\"=\"",
-//        "'OR'1\"OR\"1",
-//        "'OR'+1+\"OR\"+1=0",
-//        "' sleep(3)",
-//        "';WAITFOR DELAY '0:0:5'--" ,
-//        "' AND (SELECT * FROM (SELECT(SLEEP(5)))a)--",
-        //  "SLEEP(3) /*' or SLEEP(3) or'\" or SLEEP(3) or \""
     )
-
     val ERROR_SYNTAX: Array<String> = arrayOf(
         // 通用SQL语法错误
         "You have an error in your SQL syntax",                    // MySQL通用语法错误信息
@@ -170,7 +150,7 @@ enum class Configs {
         "\"code\":400",
         "无法解析请求参数",
         "无效的请求",
-        )
+    )
     var ignoreParams: MutableList<String> = mutableListOf(
         "_t",
         "ts",
@@ -188,12 +168,5 @@ enum class Configs {
         "column",
         "field"
     )
+    var nestedJsonParams: String =""
 }
-
-
-
-
-
-
-
-

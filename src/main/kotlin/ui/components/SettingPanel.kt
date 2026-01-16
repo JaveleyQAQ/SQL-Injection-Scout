@@ -1,588 +1,498 @@
 package ui.components
 
-
-import java.awt.*
-import javax.swing.*
-import javax.imageio.ImageIO
-import java.awt.Image
-import javax.swing.ImageIcon
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import config.Configs
 import config.DataPersistence
+import java.awt.*
+import java.io.*
+import java.nio.charset.StandardCharsets
+import javax.imageio.ImageIO
+import javax.swing.*
+import javax.swing.border.EmptyBorder
+import javax.swing.border.LineBorder
+import javax.swing.filechooser.FileNameExtensionFilter
 
-/**
- * 设置面板类 - 提供插件的主要配置界面
- * 包含SQL注入测试的各项配置，如Payload、MIME类型、文件扩展名等
- */
 class SettingPanel(private val dataPersistence: DataPersistence) : JPanel() {
-    private val configs = dataPersistence.config  // 使用 dataPersistence 中的 config
+    private val configs = dataPersistence.config
+    // 配置 Gson，处理特殊字符不转义
+    private val gson: Gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
 
-    private val COLOR_BURP_ORANGE = Color(0xE36B1E)  // Burp Suite特色橙色
-    private val FONT_FAMILY = " "                 // 字体族
-    private val FONT_SIZE = 14                        // 基础字体大小
-    // 定义不同用途的字体
-    private val FONT_HEADER = Font(FONT_FAMILY, Font.BOLD, FONT_SIZE + 2)  // 标题字体
-    private val FONT_HELP = Font(FONT_FAMILY, Font.BOLD, FONT_SIZE)        // 帮助文本字体
-    private val FONT_MODE = Font(FONT_FAMILY, Font.BOLD, FONT_SIZE)    // 模式字体
-    private val FONT_OPTIONS = Font(FONT_FAMILY, Font.PLAIN, FONT_SIZE - 2)  // 选项字体
 
-    // 创建一个Map来存储标签和对应的提示文本
-    private val tooltips = mapOf(
-        "Null Check:" to "Enable this to check parameters null value different",
-        "Max Param Count:" to "Maximum number of parameters to scan in a single request",
-        "FixedInterval(ms):" to "Fixed interval between scan requests in milliseconds",
-        "Random Delay Scan:" to "Additional random delay added to fixed interval for each request",
-        "Never Scan URLs Matching Regex:" to "URLs matching these regular expressions will be skipped",
-        "HeuristicWords" to "Keywords used to identify potential Boring in responses",
-        "SQL Payloads:" to "SQL injection payloads to test against parameters",
-        "Never Scan Extensions:" to "File extensions that will be skipped during scanning",
-        "Scan MIME Types:" to "MIME types that will be included in scanning",
-        "Boring Words:" to "Boring words that will be excluded in scan",
-        "Ignore Params:" to "Ignore parameters that will be passed in",
-    )
+    // 顶部开关
+    private val cbStartUp = createCheckBox(configs.startUP) { configs.startUP = it; save() }
+    private val cbOnlyScope = createCheckBox(configs.isInScope) { configs.isInScope = it; save() }
+    private val cbProxy = createCheckBox(configs.proxy) { configs.proxy = it; save() }
+    private val cbRepeater = createCheckBox(configs.repeater) { configs.repeater = it; save() }
 
-    /**
-     * 初始化设置面板
-     */
-    init {
-        // 基本布局设置保持不变
-        layout = BorderLayout(10, 10)
-        border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        preferredSize = Dimension(800, 600)
-        minimumSize = preferredSize
-        maximumSize = preferredSize
+    // 基础设置
+    private val cbNullCheck = createCheckBox(configs.nullCheck) { configs.nullCheck = it; save() }
+    private val txtMaxParam = createTextField(configs.maxAllowedParameterCount.toString()) { it.toIntOrNull()?.let { v -> configs.maxAllowedParameterCount = v; save() } }
+    private val txtFixedInterval = createTextField(configs.fixedIntervalTime.toString()) { it.toLongOrNull()?.let { v -> configs.fixedIntervalTime = v; save() } }
+    private val txtRandomDelay = createTextField(configs.randomCheckTimer.toString()) { it.toLongOrNull()?.let { v -> configs.randomCheckTimer = v; save() } }
 
-        // 创建主面板
-        val mainPanel = JPanel(GridBagLayout())
-        add(mainPanel, BorderLayout.CENTER)
+    // 过滤设置
+    private val txtNeverScanRegex = createTextField(configs.neverScanRegex) { configs.neverScanRegex = it; save() }
+    private val txtNestedJsonKey = createTextField(configs.nestedJsonParams) { configs.nestedJsonParams = it; save() }
 
-        addTitlePanel(mainPanel)
-        addParametersPanel(mainPanel)
-        addRightPanel(mainPanel)
+    private val textAreaMap = mutableMapOf<String, JTextArea>()
+
+    private fun save() {
+        dataPersistence.updateConfig()
+    }
+
+    object Style {
+        val BURP_ORANGE = Color(227, 107, 30)
+        val HEADER_BG = Color(90, 80, 70) // 深色背景
+        val TEXT_NORMAL = Color(51, 51, 51)
+        val TEXT_WHITE = Color(220, 220, 220)
+        val BORDER_COLOR = Color(200, 200, 200)
+
+        val FONT_MAIN = Font("SansSerif", Font.PLAIN, 13)
+        val FONT_HEADER = FONT_MAIN.deriveFont(Font.BOLD, 16f)
+        val FONT_LABEL = FONT_MAIN.deriveFont(Font.BOLD, 13f)
+
+        fun createInputBorder() = BorderFactory.createCompoundBorder(
+            LineBorder(BORDER_COLOR, 1, true),
+            EmptyBorder(5, 8, 5, 8)
+        )
     }
 
     /**
-     * 添加标题面板
-     * 包含插件标题和功能开关
-     * @param mainPanel 主面板，用于添加标题面板
+     * 提示信息
      */
+    private val tooltips = mapOf(
+        "Null Check:" to "Enable this to check parameters null value different",
+        "Max Param Count:" to "Maximum number of parameters to scan in a single request",
+        "Fixed Interval (ms):" to "Fixed interval between scan requests in milliseconds",
+        "Random Delay (ms):" to "Additional random delay added to fixed interval for each request",
+        "Never Scan URI Regex:" to "URLs matching these regular expressions will be skipped (e.g.'(delete|logout)' )",
+        "Nested JSON Key:" to "Input parameters containing nested JSON strings (e.g.'biz_content').",
+        "SQL Payloads" to "SQL injection payloads to test against parameters",
+        "Boring Words" to "Boring words that will be excluded in scan",
+        "Ignore Params" to "Ignore parameters that will be passed in",
+        "MIME Types" to "MIME types that will be included in scan",
+        "Skip Exts" to "File extensions that will be skipped during scanning"
+    )
+
+    init {
+        layout = BorderLayout()
+        background = Color.WHITE
+
+        val mainPanel = JPanel(GridBagLayout())
+        mainPanel.background = Color.WHITE
+        mainPanel.border = EmptyBorder(0, 0, 0, 0)
+
+        addTitlePanel(mainPanel)
+
+        val contentPanel = JPanel(GridBagLayout())
+        contentPanel.background = Color.WHITE
+        contentPanel.border = EmptyBorder(20, 20, 20, 20)
+
+        addParametersPanel(contentPanel)
+        addRightPanel(contentPanel)
+
+        val gbc = GridBagConstraints().apply {
+            gridx = 0
+            gridy = 1
+            weightx = 1.0
+            weighty = 1.0
+            fill = GridBagConstraints.BOTH
+        }
+        mainPanel.add(contentPanel, gbc)
+        add(mainPanel, BorderLayout.CENTER)
+    }
+
     private fun addTitlePanel(mainPanel: JPanel) {
-        // 创建标题面板
-        val titlePanel = JPanel(FlowLayout(FlowLayout.LEFT))
-        val titleBackground = Color(1, 11, 70)  // 深蓝色背景
-        titlePanel.background = titleBackground
+        val titlePanel = JPanel(BorderLayout())
+        titlePanel.background = Style.HEADER_BG
+        titlePanel.border = EmptyBorder(15, 20, 15, 20)
 
-        // 添加插件标题
-        val titleLabel = JLabel("SQL Injection Scout Burp Extension by JaveleyQAQ")
-        titleLabel.font = FONT_HEADER
-        titleLabel.foreground = COLOR_BURP_ORANGE
-        titlePanel.add(titleLabel)
-
-        // 创建模式选择面板
-        val modePanel = JPanel(FlowLayout(FlowLayout.LEFT))
-        modePanel.background = titleBackground
-
-        // 加载并添加图标
+        val leftPanel = JPanel(FlowLayout(FlowLayout.LEFT, 15, 0))
+        leftPanel.isOpaque = false
         try {
-            // 从资源中加载图标
             val iconStream = javaClass.getResourceAsStream("/icon.jpeg")
             if (iconStream != null) {
                 val icon = ImageIcon(ImageIO.read(iconStream))
-                // 调整图标大小（根据需要调整尺寸）
-                val scaledIcon = icon.image.getScaledInstance(30, 30, Image.SCALE_SMOOTH)
-                val logoLabel = JLabel(ImageIcon(scaledIcon))
-                modePanel.add(logoLabel)
-            } else {
-                // 如果图标加载失败，使用文本作为后备
-                modePanel.add(JLabel("SQL Scout").apply {
-                    foreground = Color.RED
-                    font = FONT_MODE
-                })
+                val scaledIcon = icon.image.getScaledInstance(32, 32, Image.SCALE_SMOOTH)
+                leftPanel.add(JLabel(ImageIcon(scaledIcon)))
             }
-        } catch (e: Exception) {
-            // 如果出现任何错误，使用文本作为后备
-            println("Error loading icon: ${e.message}")
-            modePanel.add(JLabel("SQL Scout").apply {
-                foreground = Color.RED
-                font = FONT_MODE
-            })
+        } catch (e: Exception) { e.printStackTrace() }
+
+        val titleLabel = JLabel("SQL Injection Scout").apply {
+            font = Style.FONT_HEADER
+            foreground = Style.BURP_ORANGE
+        }
+        val subTitleLabel = JLabel(" extension by JaveleyQAQ").apply {
+            font = Style.FONT_MAIN
+            foreground = Color.GRAY
+        }
+        val textContainer = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply {
+            isOpaque = false
+            add(titleLabel)
+            add(subTitleLabel)
+        }
+        leftPanel.add(textContainer)
+        titlePanel.add(leftPanel, BorderLayout.WEST)
+
+        val optionsPanel = JPanel(FlowLayout(FlowLayout.RIGHT, 15, 0))
+        optionsPanel.isOpaque = false
+
+        // === 按钮样式 ===
+        val btnStyle = Font("SansSerif", Font.BOLD, 11)
+        val btnColor = Color(70, 70, 70)
+
+        // Init 按钮
+        val btnInit = JButton("Init").apply {
+            background = Color(200, 60, 60)
+            foreground = Color.WHITE
+            isFocusPainted = false
+            font = btnStyle
+            toolTipText = "Reset configuration to defaults"
+            addActionListener { performInit() }
         }
 
-        // 配置复选框选项
-        val checkboxConfigs = mapOf(
-            "StartUP" to { configs.startUP to { v: Boolean -> configs.startUP = v } },
-            "Only Scope" to { configs.isInScope to { v: Boolean -> configs.isInScope = v } },
-            "Proxy" to { configs.proxy to { v: Boolean -> configs.proxy = v } },
-            "Repeater" to { configs.repeater to { v: Boolean -> configs.repeater = v } }
-        )
-
-        // 创建并配置复选框
-        checkboxConfigs.forEach { (text, getterAndSetter) ->
-            val (initialValue, setter) = getterAndSetter()
-            val checkbox = JCheckBox(text).apply {
-                isSelected = initialValue
-                foreground = Color.PINK
-                background = titleBackground
-                font = Font(FONT_FAMILY, Font.PLAIN, 14)
-                // 设置文本和表情
-                this.text = if (initialValue) "$text" else "$text😢"
-
-                // 添加动作监听器
-                addActionListener {
-                    setter(isSelected)
-                    this.text = if (isSelected) "$text" else "$text😢"
-                    dataPersistence.updateConfig()
-//                    println("配置 $text 已更改为: $isSelected")
-                }
-            }
-            modePanel.add(checkbox)
+        val btnExport = JButton("Export").apply {
+            background = btnColor
+            foreground = Color.WHITE
+            isFocusPainted = false
+            font = btnStyle
+            addActionListener { performExport() }
         }
-        titlePanel.add(modePanel)
 
-        // 设置标题面板在主面板中的位置
+        val btnImport = JButton("Import").apply {
+            background = btnColor
+            foreground = Color.WHITE
+            isFocusPainted = false
+            font = btnStyle
+            addActionListener { performImport() }
+        }
+
+        optionsPanel.add(btnInit)
+        optionsPanel.add(Box.createHorizontalStrut(5))
+        optionsPanel.add(btnExport)
+        optionsPanel.add(Box.createHorizontalStrut(5))
+        optionsPanel.add(btnImport)
+        optionsPanel.add(Box.createHorizontalStrut(15))
+
+        fun addCb(text: String, cb: JCheckBox) {
+            cb.text = text
+            cb.foreground = Style.TEXT_WHITE
+            cb.background = Style.HEADER_BG
+            cb.font = Style.FONT_MAIN
+            cb.isFocusPainted = false
+            optionsPanel.add(cb)
+        }
+        addCb("StartUP", cbStartUp)
+        addCb("Only Scope", cbOnlyScope)
+        addCb("Proxy", cbProxy)
+        addCb("Repeater", cbRepeater)
+
+        titlePanel.add(optionsPanel, BorderLayout.EAST)
+
         val gbc = GridBagConstraints().apply {
             gridx = 0
             gridy = 0
             gridwidth = 2
+            weightx = 1.0
             fill = GridBagConstraints.HORIZONTAL
-            insets = Insets(0, 0, 10, 0)
         }
         mainPanel.add(titlePanel, gbc)
     }
 
-    /**
-     * 添加参数配置面板
-     * 包含各种配置项的主要区域
-     * @param mainPanel 主面板，用于添加参数面板
-     */
-    private fun addParametersPanel(mainPanel: JPanel) {
-        // 创建参数面板
-        val paramsPanel = JPanel(BorderLayout(5, 5))
-        // 设置固定宽度（60%的总宽度）
-        paramsPanel.preferredSize = Dimension(480, 0)
-        paramsPanel.minimumSize = paramsPanel.preferredSize
-        paramsPanel.maximumSize = paramsPanel.preferredSize
+    private fun addParametersPanel(parent: JPanel) {
+        val panel = JPanel()
+        panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
+        panel.background = Color.WHITE
 
-        // 设置边框和标题
-        paramsPanel.border = BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder("Configuration"),
-            BorderFactory.createEmptyBorder(2, 2, 2, 2)
-        )
+        val basicGroup = createGroupPanel("Basic Settings")
+        addConfigRow(basicGroup, "Null Check:", cbNullCheck)
+        addConfigRow(basicGroup, "Max Param Count:", txtMaxParam)
+        addConfigRow(basicGroup, "Fixed Interval (ms):", txtFixedInterval)
+        addConfigRow(basicGroup, "Random Delay (ms):", txtRandomDelay)
+        panel.add(basicGroup)
+        panel.add(Box.createVerticalStrut(15))
 
-        // 创建配置面板，使用BoxLayout垂直排列
-        val configPanel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.Y_AXIS)
+        val filterGroup = createGroupPanel("Filter Configuration")
+        addConfigRow(filterGroup, "Never Scan URI Regex:", txtNeverScanRegex)
+        addConfigRow(filterGroup, "Nested JSON Key:", txtNestedJsonKey)
+        panel.add(filterGroup)
+        panel.add(Box.createVerticalStrut(15))
+
+        val listGroup = createGroupPanel("Payloads & Wordlists")
+        val tabbedPane = JTabbedPane()
+        tabbedPane.font = Style.FONT_MAIN
+
+        fun addTabWithTooltip(title: String, list: MutableList<String>) {
+            val scrollPane = createScrollTextArea(list) { lines ->
+                list.clear()
+                list.addAll(lines)
+                save()
+            }
+            // 记录组件引用，方便刷新
+            val textArea = scrollPane.viewport.view as JTextArea
+            textAreaMap[title] = textArea
+
+            tabbedPane.addTab(title, scrollPane)
+            val tooltipText = tooltips[title] ?: tooltips["$title:"]
+            tooltipText?.let { tabbedPane.setToolTipTextAt(tabbedPane.tabCount - 1, it) }
         }
 
-        // 添加基本设置部分
-        addConfigSection(configPanel, " ", listOf(
-            "Null Check:" to JCheckBox().apply {
-                maximumSize = Dimension(100, 25)
-                preferredSize = Dimension(100, 25)
-                isSelected = configs.nullCheck
-                addActionListener {
-                    configs.nullCheck = isSelected
-                    dataPersistence.updateConfig()
-                }
-            },
-            "Max Param Count:" to JTextField(configs.maxAllowedParameterCount.toString(), 8).apply {
-                maximumSize = Dimension(100, 25)
-                preferredSize = Dimension(100, 25)
-                document.addDocumentListener(object : javax.swing.event.DocumentListener {
-                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+        addTabWithTooltip("SQL Payloads", configs.payloads)
+        addTabWithTooltip("Boring Words", configs.boringWords)
+        addTabWithTooltip("Ignore Params", configs.ignoreParams)
+        addTabWithTooltip("MIME Types", configs.allowedMimeTypeMimeType)
+        addTabWithTooltip("Skip Exts", configs.uninterestingType)
 
-                    private fun updateConfig() {
-                        text.toIntOrNull()?.let {
-                            configs.maxAllowedParameterCount = it
-                            dataPersistence.updateConfig()
-                        }
-                    }
-                })
-            },
-            "FixedInterval(ms):" to JTextField(configs.fixedIntervalTime.toString(), 8).apply {
-                maximumSize = Dimension(100, 25)
-                preferredSize = Dimension(100, 25)
-                document.addDocumentListener(object : javax.swing.event.DocumentListener {
-                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
+        listGroup.add(tabbedPane)
+        panel.add(listGroup)
 
-                    private fun updateConfig() {
-                        text.toLongOrNull()?.let { configs.fixedIntervalTime = it
-                            dataPersistence.updateConfig()}
-                    }
-                })
-            },
-            "Random Delay Scan:" to JTextField(configs.randomCheckTimer.toString(), 8).apply {
-                maximumSize = Dimension(100, 25)
-                preferredSize = Dimension(100, 25)
-                document.addDocumentListener(object : javax.swing.event.DocumentListener {
-                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-
-                    private fun updateConfig() {
-                        text.toLongOrNull()?.let { configs.randomCheckTimer = it
-                            dataPersistence.updateConfig()
-                        }
-                    }
-                })
-            },
-
-            "Never Scan URLs Matching Regex:" to JTextField(configs.neverScanRegex.toString(), 8).apply {
-                maximumSize = Dimension(100, 25)
-                preferredSize = Dimension(100, 25)
-                document.addDocumentListener(object : javax.swing.event.DocumentListener {
-                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-
-                    private fun updateConfig() {
-                        val newText = text.trim()
-                        configs.neverScanRegex = (if (newText.isBlank()) "" else newText).toString()
-                        dataPersistence.updateConfig()
-                    }
-                })
-            },
-
-            "SQL Payloads:" to JScrollPane(JTextArea().apply {
-                rows = 10
-                columns = 30
-                lineWrap = true
-                wrapStyleWord = true
-                font = FONT_OPTIONS
-                text = configs.payloads.joinToString("\n")
-                border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
-                // 添加文档监听器
-                document.addDocumentListener(object : javax.swing.event.DocumentListener {
-                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    private fun updateConfig() {
-                        configs.payloads.clear()
-                        // 获取 JTextArea 的文本，并按行分割
-                        val text = text.trim()
-                        if (text.isNotEmpty()) {
-                            // 分割并过滤掉空白行
-                            val newPayloads = text.lines().filter { it.isNotBlank() }
-                            configs.payloads.clear()
-                            configs.payloads.addAll(newPayloads)
-                            dataPersistence.updateConfig()
-                        }
-                    }
-                })
-            }).apply {
-                preferredSize = Dimension(350, 150)
-                minimumSize = preferredSize
-                maximumSize = preferredSize
-            },
-
-            "Boring Words:" to JScrollPane(JTextArea().apply {
-                rows = 10
-                columns = 30
-                lineWrap = true
-                wrapStyleWord = true
-                font = FONT_OPTIONS
-                text = configs.boringWords.joinToString("\n")
-                border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
-                // 添加文档监听器
-                document.addDocumentListener(object : javax.swing.event.DocumentListener {
-                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-
-                    private fun updateConfig() {
-                        configs.boringWords.clear()
-                        val text = text.trim()
-                        if (text.isNotEmpty()) {
-                            // 分割并过滤掉空白行
-                            val new = text.lines().filter { it.isNotBlank() }
-                            configs.boringWords.clear()
-                            configs.boringWords.addAll(new)
-                            dataPersistence.updateConfig()
-                        }
-                    }
-                })
-            }),
-
-            "Ignore Params:" to JScrollPane(JTextArea().apply {
-                rows = 10
-                columns = 30
-                lineWrap = true
-                wrapStyleWord = true
-                font = FONT_OPTIONS
-                text = configs.ignoreParams.joinToString("\n")
-                border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
-                // 添加文档监听器
-                document.addDocumentListener(object : javax.swing.event.DocumentListener {
-                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-
-                    private fun updateConfig() {
-                        configs.ignoreParams.clear()
-                        val text = text.trim()
-                        if (text.isNotEmpty()) {
-                            // 分割并过滤掉空白行
-                            val new = text.lines().filter { it.isNotBlank() }
-                            configs.ignoreParams.clear()
-                            configs.ignoreParams.addAll(new)
-                            dataPersistence.updateConfig()
-                        }
-                    }
-                })
-            }),
-
-
-            "Never Scan Extensions:" to JScrollPane(JTextArea().apply {
-                rows = 10
-                columns = 30
-                lineWrap = true
-                wrapStyleWord = true
-                font = FONT_OPTIONS
-                text = configs.uninterestingType.joinToString("\n")
-                border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
-                // 添加文档监听器，实时更新配置
-                document.addDocumentListener(object : javax.swing.event.DocumentListener {
-                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    private fun updateConfig() {
-                        configs.uninterestingType.clear()
-                        configs.uninterestingType.addAll(text.lines())
-                        dataPersistence.updateConfig()
-                    }
-                })
-            }).apply {
-                preferredSize = Dimension(350, 150)
-                minimumSize = preferredSize
-                maximumSize = preferredSize
-            },
-            "Scan MIME Types:" to JScrollPane(JTextArea().apply {
-                rows = 10
-                columns = 30
-                lineWrap = true
-                wrapStyleWord = true
-                font = FONT_OPTIONS
-                text = configs.allowedMimeTypeMimeType.joinToString("\n")
-                border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
-
-                // 添加文档监听器
-                document.addDocumentListener(object : javax.swing.event.DocumentListener {
-                    override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                    override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-
-                    private fun updateConfig() {
-                        configs.allowedMimeTypeMimeType.clear()
-                        configs.allowedMimeTypeMimeType.addAll(text.lines())
-                        dataPersistence.updateConfig()
-                    }
-                })
-            }).apply {
-                preferredSize = Dimension(350, 150)
-                minimumSize = preferredSize
-                maximumSize = preferredSize
-            })
-        )
-
-        // 将配置面板添加到滚动面板中
-        val scrollPane = JScrollPane(configPanel).apply {
-            border = BorderFactory.createEmptyBorder()
-            verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
-            horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
-        }
-//
-        // 添加一个可伸缩的面板容器
-        val stretchPanel = JPanel(BorderLayout()).apply {
-            add(scrollPane, BorderLayout.CENTER)
-            // 添加左右边距，但允许内容伸缩
-            add(Box.createHorizontalStrut(10), BorderLayout.WEST)
-            add(Box.createHorizontalStrut(10), BorderLayout.EAST)
-        }
-        paramsPanel.add(stretchPanel, BorderLayout.CENTER)
-
-        // 添加参数面板到主面板
-        val panelGbc = GridBagConstraints().apply {
+        val gbc = GridBagConstraints().apply {
             gridx = 0
-            gridy = 1
-            fill = GridBagConstraints.BOTH
-            weightx = 0.6
+            gridy = 0
+            weightx = 0.65
             weighty = 1.0
+            fill = GridBagConstraints.BOTH
             insets = Insets(0, 0, 0, 10)
         }
-        mainPanel.add(paramsPanel, panelGbc)
+        parent.add(panel, gbc)
     }
 
-    /**
-     * 添加配置分区的辅助方法
-     */
-    private fun addConfigSection(panel: JPanel, title: String, items: List<Pair<String, JComponent>>) {
-        // 添加分区标题
-        panel.add(JLabel(title).apply {
-            font = FONT_HEADER
-            border = BorderFactory.createEmptyBorder(1, 1, 1, 1)
-            alignmentX = LEFT_ALIGNMENT
-        })
+    private fun addRightPanel(parent: JPanel) {
+        val panel = createGroupPanel("Preview / Hidden Params")
+        panel.background = Color.WHITE
 
-        // 遍历配置项
-        items.forEach { (label, component) ->
-            val itemPanel = JPanel().apply {
-                layout = BoxLayout(this, BoxLayout.X_AXIS)
-                alignmentX = LEFT_ALIGNMENT
-                maximumSize = Dimension(Short.MAX_VALUE.toInt(),
-                    when (component) {
-                        is JScrollPane -> 150  // JScrollPane的高度
-                        else -> 35            // 普通组件的高度
-                    }
-                )
-            }
-
-            // 统一的标签处理
-            if (label.isNotEmpty()) {
-                val labelComponent = JLabel(label).apply {
-                    font = FONT_OPTIONS
-                    border = BorderFactory.createEmptyBorder(0, 5, 0, 5)
-                    // 移除固定宽度设置，让标签自适应文本长度
-                    horizontalAlignment = SwingConstants.RIGHT  // 文本右对齐
-                    // 对于JScrollPane，将标签垂直对齐设置为顶部
-                    if (component is JScrollPane) {
-                        verticalAlignment = JLabel.TOP
-                    }
-
-                    // 添加工具提示
-                    tooltips[label]?.let { tooltip ->
-                        toolTipText = tooltip
-                    }
-                }
-
-                // 创建一个包装面板来容纳标签，并设置最小宽度
-                val labelWrapper = JPanel().apply {
-                    layout = BoxLayout(this, BoxLayout.X_AXIS)
-                    add(Box.createHorizontalGlue())  // 添加弹性空间使标签右对齐
-                    add(labelComponent)
-                    minimumSize = Dimension(200, 25)  // 设置最小宽度
-                    preferredSize = Dimension(200, 25)
-                }
-
-                itemPanel.add(labelWrapper)
-            }
-
-            // 设置组件大小
-            when (component) {
-                is JTextField -> {
-                    component.apply {
-                        preferredSize = Dimension(100, 25)
-                        maximumSize = preferredSize
-                    }
-                }
-                is JScrollPane -> {
-                    component.apply {
-                        preferredSize = Dimension(350, 150)
-                        maximumSize = preferredSize
-                    }
-                }
-            }
-
-            // 添加组件
-            itemPanel.add(Box.createHorizontalStrut(5))  // 添加固定间距
-            itemPanel.add(component)
-
-            // 不再添加尾部的弹性空间，让组件靠左
-
-            panel.add(itemPanel)
-            panel.add(Box.createRigidArea(Dimension(0, 5)))
+        val scrollPane = createScrollTextArea(configs.hiddenParams) { list ->
+            configs.hiddenParams.clear()
+            configs.hiddenParams.addAll(list)
+            save()
         }
-    }
+        val textArea = scrollPane.viewport.view as JTextArea
+        textAreaMap["Hidden Params"] = textArea
 
+        panel.add(scrollPane)
 
-    /**
-     * 添加右侧预览面板
-     * 用于显示潜在参数信息
-     * @param mainPanel 主面板
-     */
-    private fun addRightPanel(mainPanel: JPanel) {
-        val previewPanel = JPanel(BorderLayout(5, 5))
-        // 设置固定宽度（30%的总宽度）
-        previewPanel.preferredSize = Dimension(240, 0)
-        previewPanel.minimumSize = previewPanel.preferredSize
-        previewPanel.maximumSize = previewPanel.preferredSize
-
-        // 设置边框和标题
-        previewPanel.border = BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder("Fuzz Params List:"),
-            BorderFactory.createEmptyBorder(5, 5, 5, 5)
-        )
-
-        // 创建预览文本区域
-        val previewArea = JTextArea().apply {
-            rows = 10
-            columns = 30
-            lineWrap = true
-            wrapStyleWord = true
-            font = FONT_OPTIONS
-            text = configs.hiddenParams.joinToString("\n")
-            border = BorderFactory.createLineBorder(Color.LIGHT_GRAY)
-            // 添加文档监听器
-            document.addDocumentListener(object : javax.swing.event.DocumentListener {
-                override fun insertUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                override fun removeUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-                override fun changedUpdate(e: javax.swing.event.DocumentEvent) = updateConfig()
-
-                private fun updateConfig() {
-                    configs.hiddenParams.clear()
-                    val text = text.trim()
-                    if (text.isNotEmpty()) {
-                        // 分割并过滤掉空白行
-                        val new = text.lines().filter { it.isNotBlank() }
-                        configs.hiddenParams.clear()
-                        configs.hiddenParams.addAll(new)
-                        dataPersistence.updateConfig()
-                    }
-                }
-            })
-        }
-
-        // 创建滚动面板
-        val scrollPane = JScrollPane(previewArea).apply {
-            border = BorderFactory.createEmptyBorder()
-        }
-
-        // 创建可伸缩的容器面板
-        val stretchPanel = JPanel(BorderLayout()).apply {
-            add(scrollPane, BorderLayout.CENTER)
-            // 添加左右边距
-            add(Box.createHorizontalStrut(10), BorderLayout.WEST)
-            add(Box.createHorizontalStrut(10), BorderLayout.EAST)
-        }
-
-        previewPanel.add(stretchPanel, BorderLayout.CENTER)
-
-        // 添加到主面板
-        val rightGbc = GridBagConstraints().apply {
+        val gbc = GridBagConstraints().apply {
             gridx = 1
-            gridy = 1
-            fill = GridBagConstraints.BOTH
-            weightx = 0.3  // 占30%宽度
+            gridy = 0
+            weightx = 0.35
             weighty = 1.0
+            fill = GridBagConstraints.BOTH
             insets = Insets(0, 10, 0, 0)
         }
-        mainPanel.add(previewPanel, rightGbc)
+        parent.add(panel, gbc)
+    }
+
+    private fun performInit() {
+        val result = JOptionPane.showConfirmDialog(
+            this,
+            "Are you sure you want to reset all configurations to default?\nThis action cannot be undone.",
+            "Confirm Reset",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE
+        )
+
+        if (result == JOptionPane.YES_OPTION) {
+            try {
+                val defaults = Configs()
+                updateConfigSingleton(defaults)
+                refreshUIFromConfig()
+                save()
+                JOptionPane.showMessageDialog(this, "Configuration reset to defaults.", "Success", JOptionPane.INFORMATION_MESSAGE)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                JOptionPane.showMessageDialog(this, "Reset failed: ${e.message}", "Error", JOptionPane.ERROR_MESSAGE)
+            }
+        }
+    }
+
+    private fun performExport() {
+        val fileChooser = JFileChooser()
+        fileChooser.dialogTitle = "Export Config"
+        fileChooser.selectedFile = File("SQLScout_Config.json")
+        fileChooser.fileFilter = FileNameExtensionFilter("JSON Config", "json")
+
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            try {
+                val file = fileChooser.selectedFile
+                val targetFile = if (file.name.endsWith(".json")) file else File("${file.path}.json")
+
+                OutputStreamWriter(FileOutputStream(targetFile), StandardCharsets.UTF_8).use { writer ->
+                    gson.toJson(configs, writer)
+                }
+                JOptionPane.showMessageDialog(this, "Export successful!", "Success", JOptionPane.INFORMATION_MESSAGE)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                JOptionPane.showMessageDialog(this, "Export failed: ${e.message}", "Error", JOptionPane.ERROR_MESSAGE)
+            }
+        }
+    }
+
+    private fun performImport() {
+        val fileChooser = JFileChooser()
+        fileChooser.dialogTitle = "Import Config"
+        fileChooser.fileFilter = FileNameExtensionFilter("JSON Config", "json")
+
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            try {
+                InputStreamReader(FileInputStream(fileChooser.selectedFile), StandardCharsets.UTF_8).use { reader ->
+                    val newConfig = gson.fromJson(reader, Configs::class.java)
+                    if (newConfig == null) throw Exception("Failed to parse JSON")
+
+                    updateConfigSingleton(newConfig)
+                    refreshUIFromConfig()
+                    save()
+                }
+                JOptionPane.showMessageDialog(this, "Import successful!", "Success", JOptionPane.INFORMATION_MESSAGE)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                JOptionPane.showMessageDialog(this, "Import failed: ${e.message}", "Error", JOptionPane.ERROR_MESSAGE)
+            }
+        }
+    }
+
+    /**
+     * 安全地更新 Configs 单例
+     */
+    private fun updateConfigSingleton(newConfig: Configs) {
+        configs.startUP = newConfig.startUP
+        configs.isInScope = newConfig.isInScope
+        configs.proxy = newConfig.proxy
+        configs.repeater = newConfig.repeater
+        configs.nullCheck = newConfig.nullCheck
+
+        configs.maxAllowedParameterCount = newConfig.maxAllowedParameterCount
+        configs.fixedIntervalTime = newConfig.fixedIntervalTime
+        configs.randomCheckTimer = newConfig.randomCheckTimer
+
+        configs.neverScanRegex = newConfig.neverScanRegex ?: ""
+        configs.nestedJsonParams = newConfig.nestedJsonParams ?: ""
+
+        fun updateList(target: MutableList<String>, source: List<String>?) {
+            if (source != null) {
+                target.clear()
+                target.addAll(source)
+            }
+        }
+
+        updateList(configs.payloads, newConfig.payloads)
+        updateList(configs.boringWords, newConfig.boringWords)
+        updateList(configs.ignoreParams, newConfig.ignoreParams)
+        updateList(configs.allowedMimeTypeMimeType, newConfig.allowedMimeTypeMimeType)
+        updateList(configs.uninterestingType, newConfig.uninterestingType)
+        updateList(configs.hiddenParams, newConfig.hiddenParams)
+    }
+
+    /**
+     * 刷新界面显示
+     */
+    private fun refreshUIFromConfig() {
+        SwingUtilities.invokeLater {
+            cbStartUp.isSelected = configs.startUP
+            cbOnlyScope.isSelected = configs.isInScope
+            cbProxy.isSelected = configs.proxy
+            cbRepeater.isSelected = configs.repeater
+            cbNullCheck.isSelected = configs.nullCheck
+
+            txtMaxParam.text = configs.maxAllowedParameterCount.toString()
+            txtFixedInterval.text = configs.fixedIntervalTime.toString()
+            txtRandomDelay.text = configs.randomCheckTimer.toString()
+            txtNeverScanRegex.text = configs.neverScanRegex
+            txtNestedJsonKey.text = configs.nestedJsonParams
+
+            textAreaMap["SQL Payloads"]?.text = configs.payloads.joinToString("\n")
+            textAreaMap["Boring Words"]?.text = configs.boringWords.joinToString("\n")
+            textAreaMap["Ignore Params"]?.text = configs.ignoreParams.joinToString("\n")
+            textAreaMap["MIME Types"]?.text = configs.allowedMimeTypeMimeType.joinToString("\n")
+            textAreaMap["Skip Exts"]?.text = configs.uninterestingType.joinToString("\n")
+            textAreaMap["Hidden Params"]?.text = configs.hiddenParams.joinToString("\n")
+        }
+    }
+
+    /**
+     * UI工厂
+     */
+    private fun createGroupPanel(title: String): JPanel {
+        val panel = JPanel()
+        panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
+        panel.background = Color.WHITE
+        panel.border = BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, Color.LIGHT_GRAY),
+                title,
+                javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
+                javax.swing.border.TitledBorder.DEFAULT_POSITION,
+                Style.FONT_LABEL,
+                Style.BURP_ORANGE
+            ),
+            EmptyBorder(10, 5, 10, 5)
+        )
+        return panel
+    }
+
+    private fun addConfigRow(panel: JPanel, labelText: String, component: JComponent) {
+        val row = JPanel(BorderLayout(10, 0))
+        row.background = Color.WHITE
+        row.maximumSize = Dimension(Int.MAX_VALUE, 35)
+        row.border = EmptyBorder(0, 0, 5, 0)
+
+        val label = JLabel(labelText).apply {
+            font = Style.FONT_MAIN
+            foreground = Style.TEXT_NORMAL
+            preferredSize = Dimension(160, 30)
+            horizontalAlignment = SwingConstants.RIGHT
+            tooltips[labelText]?.let { toolTipText = it }
+        }
+
+        row.add(label, BorderLayout.WEST)
+        row.add(component, BorderLayout.CENTER)
+        panel.add(row)
+        panel.add(Box.createVerticalStrut(5))
+    }
+
+    private fun createTextField(initialValue: String, onChange: (String) -> Unit): JTextField {
+        return JTextField(initialValue).apply {
+            font = Style.FONT_MAIN
+            border = Style.createInputBorder()
+            document.addDocumentListener(SimpleDocumentListener {
+                onChange(text.trim())
+            })
+        }
+    }
+
+    private fun createCheckBox(initialValue: Boolean, onChange: (Boolean) -> Unit): JCheckBox {
+        return JCheckBox().apply {
+            isSelected = initialValue
+            background = Color.WHITE
+            addActionListener { onChange(isSelected) }
+        }
+    }
+
+    private fun createScrollTextArea(dataList: MutableList<String>, onUpdate: (List<String>) -> Unit): JScrollPane {
+        val textArea = JTextArea(dataList.joinToString("\n")).apply {
+            font = Font("Monospaced", Font.PLAIN, 12)
+            lineWrap = true
+            wrapStyleWord = true
+            border = EmptyBorder(5, 5, 5, 5)
+            document.addDocumentListener(SimpleDocumentListener {
+                val lines = text.lines().filter { it.isNotBlank() }
+                onUpdate(lines)
+            })
+        }
+        return JScrollPane(textArea).apply {
+            border = Style.createInputBorder()
+            verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
+        }
+    }
+
+    class SimpleDocumentListener(val onUpdate: () -> Unit) : javax.swing.event.DocumentListener {
+        private var timer: Timer? = null
+        private fun debounce() {
+            timer?.stop()
+            timer = Timer(300) { onUpdate() }.apply { isRepeats = false; start() }
+        }
+        override fun insertUpdate(e: javax.swing.event.DocumentEvent) = debounce()
+        override fun removeUpdate(e: javax.swing.event.DocumentEvent) = debounce()
+        override fun changedUpdate(e: javax.swing.event.DocumentEvent) = debounce()
     }
 }
-
-/**
- *
- */
-//fun utils.main() {
-//    SwingUtilities.invokeLater {
-//        val frame = JFrame("SQL Scout Settings")
-//        frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
-//        frame.setSize(800, 600)
-//        frame.isResizable = false    // 禁止调整窗口大小
-//
-//        val settingPanel = SettingPanel(DataPersistence())
-//        frame.contentPane.add(settingPanel)
-//        frame.isVisible = true
-//    }
-//}

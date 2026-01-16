@@ -1,6 +1,5 @@
 package model.logentry
 
-import ModifiedLogTable
 import processor.helper.color.ModifiedEntrySortHelper
 import processor.helper.color.ModifiedLoggerResponseHelper
 
@@ -21,9 +20,6 @@ import kotlin.concurrent.Volatile
 
 class ModifiedLogEntry(private val logEntry: LogEntry) : AbstractTableModel() {
     private val columnNames = listOf("#", "parameter", "payload", "diff", "status", "time")
-    @Volatile
-    private var cachedLogEntries: LogEntryModel? = null
-    //@Volatile
     @Volatile
     private var cachedMD5: String? = null
 

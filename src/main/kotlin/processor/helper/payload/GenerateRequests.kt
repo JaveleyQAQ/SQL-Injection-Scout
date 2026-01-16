@@ -5,9 +5,7 @@ import burp.api.montoya.http.message.params.HttpParameter
 import burp.api.montoya.http.message.params.HttpParameterType
 import burp.api.montoya.http.message.params.ParsedHttpParameter
 import burp.api.montoya.http.message.requests.HttpRequest
-//import com.nickcoblentz.montoya.PayloadUpdateMode
-//import com.nickcoblentz.montoya.withUpdatedContentLength
-//import com.nickcoblentz.montoya.withUpdatedParsedParameterValue
+import com.google.gson.JsonParser
 import config.Configs
 import utils.PayloadUpdateMode
 import utils.RequestResponseUtils
@@ -17,21 +15,22 @@ import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
 object GenerateRequests {
-    private val hiddenParams  = Configs.INSTANCE.hiddenParams
+    private val hiddenParams = Configs.INSTANCE.hiddenParams
     private val configs = Configs.INSTANCE
     private val requestResponseUtils = RequestResponseUtils()
-    private val uniqScannedParameters: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
-    private var requestPayloadMap: MutableMap<HttpRequest?, Pair<String, String>> = ConcurrentHashMap() // 记录请求的参数和payload
+    private val uniqScannedParameters: MutableSet<String> =
+        Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
+    private var requestPayloadMap: MutableMap<HttpRequest?, Pair<String, String>> =
+        ConcurrentHashMap() // 记录请求的参数和payload
 
     fun processRequests(httpRequest: HttpRequest, tmpParametersMD5: String): List<HttpRequest> {
-        val newRequest =  addHiddenParamsToHttpRequest(httpRequest)
-        return generateRequestByPayload(newRequest,newRequest.parameters(), configs.payloads)
+        val newRequest = addHiddenParamsToHttpRequest(httpRequest)
+        return generateRequestByPayload(newRequest, newRequest.parameters(), configs.payloads)
     }
 
     private fun addHiddenParamsToHttpRequest(httpRequest: HttpRequest): HttpRequest {
-        val hiddenHttpParameters:MutableList<HttpParameter> = mutableListOf()
-        var paramsType: HttpParameterType? = null
-        paramsType = when(httpRequest.contentType()){
+        val hiddenHttpParameters: MutableList<HttpParameter> = mutableListOf()
+        val paramsType = when (httpRequest.contentType()) {
             ContentType.JSON -> HttpParameterType.JSON
             ContentType.NONE -> HttpParameterType.URL
             ContentType.XML -> HttpParameterType.XML
@@ -40,7 +39,7 @@ object GenerateRequests {
         hiddenParams.forEach { params ->
             hiddenHttpParameters.add(HttpParameter.parameter(params, generateRandomString(3), paramsType))
         }
-        val newRequest  =httpRequest.withAddedParameters(hiddenHttpParameters)
+        val newRequest = httpRequest.withAddedParameters(hiddenHttpParameters)
         return newRequest
     }
 
@@ -58,9 +57,9 @@ object GenerateRequests {
 
         //参数处理
         parameters.forEach { parameter ->
-            if (!isParameterShippable(parameter) && !isIgnoredParameters(parameter)) {
+            if (!isParameterShippable(parameter) && !isIgnoredParameters(parameter) && configs.nestedJsonParams != parameter.name() ) {
                 val parameterFlag = createParameterFlag(request, parameter)
-                if ( uniqScannedParameters.add(parameterFlag)) {
+                if (uniqScannedParameters.add(parameterFlag)) {
                     val currentPayloads: List<String> = preparePayloads(parameter.value(), payloads)
                     currentPayloads.forEach { payload ->
                         val mode = PayloadUpdateMode.APPEND
@@ -68,7 +67,6 @@ object GenerateRequests {
                         val newRequest = addPayloadToRequestParam(request, parameter, payload, mode)
                         requestListWithPayload.add(newRequest)
                         requestPayloadMap[newRequest] = Pair(parameter.name(), payload)
-//                        println("[+] added payload $parameterFlag to $newRequest")
                     }
                     // 插入null到单个参数,如果就一个参数 单独设置会和addAllParamsNullRequest重复
                     if (configs.nullCheck && parameters.size >= 2) {
@@ -76,8 +74,11 @@ object GenerateRequests {
                         requestListWithPayload.add(req)
                         requestPayloadMap[req] = Pair(parameter.name(), "null")
                     }
-
                 }
+            }
+            else if (configs.nestedJsonParams == parameter.name()){
+                println("Parameter ${parameter.name()} ")
+                processNestedJsonParameter(request, parameter, payloads, requestListWithPayload)
             }
         }
 
@@ -88,7 +89,7 @@ object GenerateRequests {
         return requestPayloadMap
     }
 
-    fun cleanData(){
+    fun cleanData() {
         requestPayloadMap.clear()
         uniqScannedParameters.clear()
     }
@@ -105,6 +106,7 @@ object GenerateRequests {
         }
         return mutablePayloads
     }
+
     /**
      * 检测参数位置是否值得跳过
      */
@@ -113,7 +115,7 @@ object GenerateRequests {
     }
 
     private fun isIgnoredParameters(parameter: ParsedHttpParameter): Boolean {
-        return  configs.ignoreParams.contains(parameter.name().lowercase())
+        return configs.ignoreParams.contains(parameter.name().lowercase())
     }
 
     /**
@@ -164,7 +166,7 @@ object GenerateRequests {
         payload: String,
         module: PayloadUpdateMode
     ): HttpRequest {
-        return when (parameter.type()){
+        return when (parameter.type()) {
             HttpParameterType.JSON -> {
                 request.withUpdatedParsedParameterValue(
                     parameter,
@@ -172,11 +174,11 @@ object GenerateRequests {
                     module
                 ).withUpdatedContentLength(true)
             }
+
             else ->
-                    request.withUpdatedParsedParameterValue(
+                request.withUpdatedParsedParameterValue(
                     parameter,
-                    payload.replace("\"", "%22", true).replace("#", "%23", true).
-                    replace(" ", "%20", true),
+                    payload.replace("\"", "%22", true).replace("#", "%23", true).replace(" ", "%20", true),
 //                    api.utilities().urlUtils().encode(payload),
                     module
                 ).withUpdatedContentLength(true)
@@ -196,4 +198,64 @@ object GenerateRequests {
             .map { allowedDigits.random() }
             .joinToString("")
     }
+
+    /**
+     * 嵌套json解析
+     */
+    private fun processNestedJsonParameter(
+        request: HttpRequest,
+        parameter: ParsedHttpParameter,
+        payloads: List<String>,
+        requestListWithPayload: MutableList<HttpRequest>
+    ) {
+        try {
+            val rawParamValue = parameter.value().trim()
+            if (!rawParamValue.startsWith("{")) return
+
+            // 如果原始值里是 {\"title\":\"...}，需要把它变成 {"title":"...} 解析
+            val cleanJsonString = rawParamValue.replace("\\\"", "\"")
+            val jsonElement = JsonParser.parseString(cleanJsonString)
+
+            if (jsonElement.isJsonObject) {
+                val jsonObject = jsonElement.asJsonObject
+
+                jsonObject.entrySet().forEach { entry ->
+                    val nestedKey = entry.key
+                    val nestedValueElement = entry.value
+
+                    if (nestedValueElement.isJsonPrimitive) {
+                        val originalNestedValue = nestedValueElement.asString
+                        val nestedPayloads = preparePayloads(originalNestedValue, payloads)
+
+                        nestedPayloads.forEach { payload ->
+                            // 基于清洗后的 JSON 结构克隆
+                            val mutableJsonObject = JsonParser.parseString(cleanJsonString).asJsonObject
+
+                            if (payload == "null") {
+                                mutableJsonObject.add(nestedKey, com.google.gson.JsonNull.INSTANCE)
+                            } else {
+                                val newValue = originalNestedValue + payload
+                                mutableJsonObject.addProperty(nestedKey, newValue)
+                            }
+
+                            // 4. 关键修复：重新转义
+                            val finalPayloadString = mutableJsonObject.toString().replace("\"", "\\\"")
+                            val newRequest = request.withUpdatedParsedParameterValue(
+                                parameter,
+                                finalPayloadString,
+                                PayloadUpdateMode.REPLACE
+                            ).withUpdatedContentLength(true)
+
+                            requestListWithPayload.add(newRequest)
+                            requestPayloadMap[newRequest] = Pair("${parameter.name()}->$nestedKey", payload)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            println("Nested JSON process failed for ${parameter.name()}: ${e.message}")
+        }
+    }
+
+
 }

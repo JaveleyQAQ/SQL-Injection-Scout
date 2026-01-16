@@ -2,10 +2,8 @@ package processor.helper.color
 
 import model.config.ColorGroupedData
 import model.logentry.ModifiedLogDataModel
-import processor.helper.color.ColorSortHelper
 import java.awt.Color
 
-// ModifiedEntrySorter.kt
 object ModifiedEntrySortHelper {
 
     fun sortByColor(entries: MutableList<ModifiedLogDataModel>) {
