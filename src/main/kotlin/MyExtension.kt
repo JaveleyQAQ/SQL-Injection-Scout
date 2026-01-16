@@ -31,7 +31,7 @@ class MyExtension : BurpExtension, ExtensionUnloadingHandler{
         logViewPanel = LogViewPanel(api, logs, modifiedLog, httpInterceptor,dataPersistence)
 
         // 注册HTTP处理器和UI
-        api.userInterface().registerSuiteTab("🎶SQL Scout",logViewPanel.buildUI() )
+        api.userInterface().registerSuiteTab("SQL Scout",logViewPanel.buildUI() )
         api.http().registerHttpHandler(httpInterceptor)
         api.userInterface().registerContextMenuItemsProvider(SiteMapContextMenuItemsProvider(api, httpInterceptor))
 

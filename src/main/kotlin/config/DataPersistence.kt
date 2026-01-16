@@ -1,20 +1,23 @@
 package config
 
 import burp.api.montoya.MontoyaApi
-import burp.api.montoya.persistence.PersistedList
-import burp.api.montoya.persistence.PersistedObject
+import burp.api.montoya.persistence.Preferences
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 
 class DataPersistence(val api: MontoyaApi) {
-    private val persistenceData: PersistedObject = api.persistence().extensionData() ?: throw IllegalStateException("Persistence not available")
+    private val preferences: Preferences = api.persistence().preferences() ?: throw IllegalStateException("Persistence not available")
     val config = Configs.INSTANCE
+    private val gson: Gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
 
     private companion object {
-        const val KEY_FLAG = "JAVELEYFLAG"
+        const val KEY_FLAG = "JAVELEY_GLOBAL_FLAG"
     }
 
     init {
-        if (persistenceData.getString(KEY_FLAG) == null) {
-            persistenceData.setString(KEY_FLAG, KEY_FLAG)
+        if (preferences.getString(KEY_FLAG) == null) {
+            preferences.setString(KEY_FLAG, "INIT_DONE")
             saveData()
         } else {
             loadData()
@@ -22,7 +25,7 @@ class DataPersistence(val api: MontoyaApi) {
     }
 
     fun loadData() {
-        with(persistenceData) {
+        with(preferences) {
             getBoolean("startUP")?.let { config.startUP = it }
             getBoolean("isInScope")?.let { config.isInScope = it }
             getBoolean("proxy")?.let { config.proxy = it }
@@ -35,18 +38,18 @@ class DataPersistence(val api: MontoyaApi) {
             getString("neverScanRegex")?.let { config.neverScanRegex = it }
             getString("nestedJsonParams")?.let { config.nestedJsonParams = it }
 
-            // 加载列表：PersistedList
-            loadListToConfig("payloads", config.payloads)
-            loadListToConfig("boringWords", config.boringWords)
-            loadListToConfig("uninterestingType", config.uninterestingType)
-            loadListToConfig("allowedMimeTypeMimeType", config.allowedMimeTypeMimeType)
-            loadListToConfig("hiddenParams", config.hiddenParams)
-            loadListToConfig("ignoreParams", config.ignoreParams)
+            // 使用 JSON 反序列化加载列表
+            loadJsonList("payloads", config.payloads)
+            loadJsonList("boringWords", config.boringWords)
+            loadJsonList("uninterestingType", config.uninterestingType)
+            loadJsonList("allowedMimeTypeMimeType", config.allowedMimeTypeMimeType)
+            loadJsonList("hiddenParams", config.hiddenParams)
+            loadJsonList("ignoreParams", config.ignoreParams)
         }
     }
 
     fun saveData() {
-        with(persistenceData) {
+        with(preferences) {
             setBoolean("startUP", config.startUP)
             setBoolean("isInScope", config.isInScope)
             setBoolean("proxy", config.proxy)
@@ -56,35 +59,43 @@ class DataPersistence(val api: MontoyaApi) {
             setInteger("maxAllowedParameterCount", config.maxAllowedParameterCount)
             setLong("randomCheckTimer", config.randomCheckTimer)
             setLong("fixedIntervalTime", config.fixedIntervalTime)
-            setString("neverScanRegex", config.neverScanRegex)
-            setString("nestedJsonParams", config.nestedJsonParams)
+            setString("neverScanRegex", config.neverScanRegex ?: "")
+            setString("nestedJsonParams", config.nestedJsonParams ?: "")
 
-            // 修复点：调用 .toPersistedList() 进行类型转换
-            setStringList("payloads", config.payloads.toPersistedList())
-            setStringList("hiddenParams", config.hiddenParams.toPersistedList())
-            setStringList("boringWords", config.boringWords.toPersistedList())
-            setStringList("ignoreParams", config.ignoreParams.toPersistedList())
-            setStringList("uninterestingType", config.uninterestingType.toPersistedList())
-            setStringList("allowedMimeTypeMimeType", config.allowedMimeTypeMimeType.toPersistedList())
+            // 使用 JSON 序列化保存列表
+            saveJsonList("payloads", config.payloads)
+            saveJsonList("boringWords", config.boringWords)
+            saveJsonList("uninterestingType", config.uninterestingType)
+            saveJsonList("allowedMimeTypeMimeType", config.allowedMimeTypeMimeType)
+            saveJsonList("hiddenParams", config.hiddenParams)
+            saveJsonList("ignoreParams", config.ignoreParams)
         }
     }
 
     fun updateConfig() = saveData()
 
-    private fun PersistedObject.loadListToConfig(key: String, targetList: MutableList<String>) {
-        this.getStringList(key)?.let { savedList ->
-            targetList.clear()
-            savedList.forEach {
-                targetList.add(it.toString())
-            }
-        }
+    /**
+     * 将 List 转为 JSON 字符串并存入 Preferences
+     */
+    private fun saveJsonList(key: String, list: List<String>) {
+        val json = gson.toJson(list)
+        preferences.setString(key, json)
     }
 
-
-    private fun List<String>.toPersistedList(): PersistedList<String> {
-        val list = PersistedList.persistedStringList()
-        // 将当前 List 的所有元素添加进去
-        list.addAll(this)
-        return list
+    /**
+     * 从 Preferences 读取 JSON 字符串并还原为 List
+     */
+    private fun loadJsonList(key: String, targetList: MutableList<String>) {
+        val json = preferences.getString(key)
+        if (!json.isNullOrBlank()) {
+            try {
+                val listType = object : TypeToken<List<String>>() {}.type
+                val decodedList: List<String> = gson.fromJson(json, listType)
+                targetList.clear()
+                targetList.addAll(decodedList)
+            } catch (e: Exception) {
+                System.err.println("Failed to parse config list for key: $key")
+            }
+        }
     }
 }
