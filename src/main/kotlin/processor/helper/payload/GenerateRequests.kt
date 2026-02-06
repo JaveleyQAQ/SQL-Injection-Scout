@@ -32,12 +32,16 @@ object GenerateRequests {
         val hiddenHttpParameters: MutableList<HttpParameter> = mutableListOf()
         val paramsType = when (httpRequest.contentType()) {
             ContentType.JSON -> HttpParameterType.JSON
-            ContentType.NONE -> HttpParameterType.URL
+            ContentType.URL_ENCODED -> HttpParameterType.BODY
             ContentType.XML -> HttpParameterType.XML
+//            ContentType.MULTIPART -> HttpParameterType.MULTIPART_ATTRIBUTE
             else -> HttpParameterType.URL
         }
         hiddenParams.forEach { params ->
-            hiddenHttpParameters.add(HttpParameter.parameter(params, generateRandomString(3), paramsType))
+            //解决添加隐藏参数与原有参数重复的问题
+            if (httpRequest.parameter(params,paramsType)==null){
+                hiddenHttpParameters.add(HttpParameter.parameter(params, generateRandomString(3), paramsType))
+            }
         }
         val newRequest = httpRequest.withAddedParameters(hiddenHttpParameters)
         return newRequest

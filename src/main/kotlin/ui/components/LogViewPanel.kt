@@ -93,8 +93,7 @@ class LogViewPanel(
 
             override fun changeSelection(rowIndex: Int, columnIndex: Int, toggle: Boolean, extend: Boolean) {
                 super.changeSelection(rowIndex, columnIndex, toggle, extend)
-                if (rowIndex < 0 || rowIndex >= rowCount) return
-
+                if (rowIndex !in 0..<rowCount)  return else currentMD5 = null
                 val modelRow = convertRowIndexToModel(rowIndex)
                 val md5 = logs.getEntryMD5ByIndex(modelRow).toString()
 
@@ -107,7 +106,7 @@ class LogViewPanel(
                         modifiedLog.sortByColor()
                         modifiedLogTable.resetSortToDefault()
                         modifiedLogTable.repaint()
-//                        modifiedLogTable.rowSorter?.allRowsChanged()
+                        modifiedLogTable.rowSorter?.allRowsChanged()
                     }
 
                     val requestResponse = logs.getEntry(currentMD5!!)?.requestResponse

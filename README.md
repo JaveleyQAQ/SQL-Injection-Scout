@@ -65,6 +65,9 @@ SQL Injection Scout 是一个用于 Burp Suite 的扩展，专为帮助安全研
 
 ---
 ## Q&A
+#### 为什么插件没有流量？
+1. 确保插件设置中的`Only Scope`（白名单）不为☑️状态。
+2. 若要开启`Only Scope`模式，请在`Target`页面`URL view`中右键对应域名，点击`Add to scope`
 #### 为什么会部分请求参数缺失？
 1. 为了降噪/减少请求，插件将不会扫描同接口的重复参数，有些系统会复用同一个 API 接口，不同功能点只是传不同字参数。在这种场景下，扫描策略是：
 - 1. 同一路径下已经fuzz过的参数，不再重复fuzz，已扫描参数以`url path|| parameters a || JSON`存储 。

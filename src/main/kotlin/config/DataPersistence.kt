@@ -62,7 +62,6 @@ class DataPersistence(val api: MontoyaApi) {
             setString("neverScanRegex", config.neverScanRegex ?: "")
             setString("nestedJsonParams", config.nestedJsonParams ?: "")
 
-            // 使用 JSON 序列化保存列表
             saveJsonList("payloads", config.payloads)
             saveJsonList("boringWords", config.boringWords)
             saveJsonList("uninterestingType", config.uninterestingType)

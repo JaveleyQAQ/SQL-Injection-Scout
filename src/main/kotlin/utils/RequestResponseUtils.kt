@@ -125,7 +125,11 @@ class RequestResponseUtils {
     }
 
     private fun isAllowedResponseStatus(response: HttpResponse): Boolean {
-        return response.statusCode().toString() == "200" || response.statusCode().toString() == "302"
+        val code = response.statusCode().toInt()
+        return when (code) {
+            200, 302, 500 -> true
+            else -> false
+        }
     }
 
     fun checkConfigsChoseBox(responseReceived: HttpResponseReceived): Boolean {
